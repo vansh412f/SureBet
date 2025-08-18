@@ -48,6 +48,12 @@ const OpportunitySchema = new mongoose.Schema({
   last_updated: {
     type: Date,
     default: Date.now
+  },
+  status: {
+    type: String,
+    required: true,
+    enum: ['live', 'past'],
+    default: 'live'
   }
 });
 

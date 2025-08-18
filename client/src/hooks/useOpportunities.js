@@ -4,58 +4,41 @@ import { useOpportunityStore } from '../store/opportunityStore';
 import socket from '../api/socket';
 
 export const useOpportunities = () => {
-  const setOpportunities = useOpportunityStore((state) => state.setOpportunities);
+  const { setOpportunities, setApiStatus } = useOpportunityStore();
 
   useEffect(() => {
-    // Handle new opportunities data
+    // Handle new opportunities from the backend
     const handleNewOpportunities = (data) => {
-      console.log('Received new opportunities:', data.length, 'opportunities');
+      console.log('Received new opportunities from backend:', data);
+      // This action now also resets apiStatus to 'ok'
       setOpportunities(data);
     };
 
-    // Handle real-time updates for individual opportunities
-    const handleOpportunityUpdate = (updatedOpportunity) => {
-      console.log('Opportunity updated:', updatedOpportunity.id);
-      // Update individual opportunity in the store
-      useOpportunityStore.setState((state) => ({
-        opportunities: state.opportunities.map(opp =>
-          opp.id === updatedOpportunity.id ? updatedOpportunity : opp
-        ),
-      }));
+    // Handle API error event
+    const handleApiError = (errorPayload) => {
+      console.error('API limit reached:', errorPayload.message);
+      setApiStatus('limit_reached');
     };
 
-    // Handle opportunity removal
-    const handleOpportunityRemoved = (opportunityId) => {
-      console.log('Opportunity removed:', opportunityId);
-      useOpportunityStore.setState((state) => ({
-        opportunities: state.opportunities.filter(opp => opp.id !== opportunityId),
-      }));
+    // Handle a successful connection or reconnection
+    const handleConnect = () => {
+      setApiStatus('ok');
     };
 
-    // Register event listeners
+    // Listen for events
     socket.on('new_opportunities', handleNewOpportunities);
-    socket.on('opportunity_update', handleOpportunityUpdate);
-    socket.on('opportunity_removed', handleOpportunityRemoved);
+    socket.on('api_error', handleApiError);
+    socket.on('connect', handleConnect); // Add listener for connect
 
-    // Request initial data on connection
-    if (socket.connected) {
-      socket.emit('request_opportunities');
-    } else {
-      socket.on('connect', () => {
-        socket.emit('request_opportunities');
-      });
-    }
-
-    // Cleanup function
+    // Cleanup function to prevent memory leaks
     return () => {
       socket.off('new_opportunities', handleNewOpportunities);
-      socket.off('opportunity_update', handleOpportunityUpdate);
-      socket.off('opportunity_removed', handleOpportunityRemoved);
+      socket.off('api_error', handleApiError);
+      socket.off('connect', handleConnect); // Also remove the connect listener
     };
-  }, [setOpportunities]);
+  }, [setOpportunities, setApiStatus]);
 
   return {
-    socket,
     isConnected: socket.connected,
   };
 };

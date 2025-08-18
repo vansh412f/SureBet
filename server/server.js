@@ -48,8 +48,8 @@ httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Schedule the arbitrage check to run every 30 minutes
-cron.schedule('*/30 * * * *', () => {
+// Schedule the arbitrage check to run every 60 minutes
+cron.schedule('*/60 * * * *', () => {
   console.log('Running scheduled arbitrage check...');
   // Pass the 'io' instance to your function so it can send updates
   runArbitrageCheck(io);

@@ -1,13 +1,12 @@
-// /src/components/filters/SportFilterBar.js
 import React from 'react';
-import { Box, Button, Chip } from '@mui/material';
+import { Box, Button, Chip, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
 
 const FilterBarContainer = styled(Box)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
+  backgroundColor: theme.palette.background.paper, // midnight
   padding: theme.spacing(2),
-  borderBottom: `1px solid ${theme.palette.divider}`,
+  borderBottom: `1px solid ${theme.palette.divider}`, // slate
   display: 'flex',
   flexWrap: 'wrap',
   gap: theme.spacing(1),
@@ -16,13 +15,25 @@ const FilterBarContainer = styled(Box)(({ theme }) => ({
   '&::-webkit-scrollbar': {
     height: 4,
   },
-  '&::-webkit-scrollbar-track': {
-    backgroundColor: theme.palette.background.default,
-  },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.primary.main, // electricBlue
     borderRadius: 2,
   },
+}));
+
+const StatBlock = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(0.5, 1.5),
+  borderRadius: 6,
+  border: `1px solid ${theme.palette.divider}`,
+  backgroundColor: theme.palette.background.default, // charcoal
+}));
+
+const StatNumber = styled(Typography)(({ theme }) => ({
+  fontWeight: 700,
+  marginLeft: theme.spacing(0.5),
+  color: theme.palette.primary.main, // electricBlue highlight
 }));
 
 const SportButton = styled(Button)(({ theme, selected }) => ({
@@ -31,30 +42,42 @@ const SportButton = styled(Button)(({ theme, selected }) => ({
   textTransform: 'capitalize',
   borderRadius: 20,
   padding: theme.spacing(0.5, 2),
-  backgroundColor: selected ? theme.palette.primary.main : 'transparent',
-  color: selected ? 'white' : theme.palette.text.primary,
-  border: `1px solid ${selected ? theme.palette.primary.main : theme.palette.divider}`,
-  '&:hover': {
-    backgroundColor: selected 
-      ? theme.palette.primary.dark 
-      : theme.palette.primary.main + '20',
-  },
+  fontWeight: 600,
+  transition: 'all 0.25s ease',
+  ...(selected
+    ? {
+        backgroundColor: theme.palette.primary.main,
+        color: '#fff',
+        '&:hover': {
+          backgroundColor: theme.palette.primary.dark,
+        },
+      }
+    : {
+        border: `1px solid ${theme.palette.divider}`,
+        color: theme.palette.text.secondary,
+        '&:hover': {
+          backgroundColor: theme.palette.action.hover,
+          borderColor: theme.palette.primary.main,
+        },
+      }),
 }));
 
 const CountChip = styled(Chip)(({ theme }) => ({
   height: 20,
   fontSize: '0.75rem',
-  backgroundColor: theme.palette.secondary.main,
+  backgroundColor: theme.palette.secondary.main, // vibrantGreen
   color: 'white',
   marginLeft: theme.spacing(0.5),
+  fontWeight: 600,
 }));
 
 const SportFilterBar = () => {
-  const { 
-    opportunities, 
-    filters, 
-    updateFilter, 
-    getAvailableSports 
+  const {
+    opportunities,
+    filters,
+    updateFilter,
+    getAvailableSports,
+    stats,
   } = useOpportunityStore();
 
   const availableSports = getAvailableSports();
@@ -62,10 +85,8 @@ const SportFilterBar = () => {
 
   const handleSportChange = (sport) => {
     updateFilter('sport', sport);
-    // Reset dependent filters when sport changes
     if (sport !== selectedSport) {
       updateFilter('leagues', []);
-      updateFilter('bookmakers', []);
     }
   };
 
@@ -73,13 +94,24 @@ const SportFilterBar = () => {
     if (sport === 'All') {
       return opportunities.length;
     }
-    return opportunities.filter(opp => opp.sport === sport).length;
+    return opportunities.filter((opp) => opp.sport_title === sport).length;
   };
 
   return (
     <FilterBarContainer>
+      {/* Matches Scanned Block */}
+      <StatBlock>
+        <Typography variant="body2" color="text.secondary" >
+          Matches Scanned:
+        </Typography>
+        <StatNumber variant="body2">
+          {stats.matchesScanned}
+        </StatNumber>
+      </StatBlock>
+
+      {/* Sports Buttons */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        {/* All Sports Button */}
+        {/* All Sports */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <SportButton
             selected={selectedSport === 'All'}
@@ -87,13 +119,10 @@ const SportFilterBar = () => {
           >
             All Sports
           </SportButton>
-          <CountChip 
-            label={getSportOpportunityCount('All')} 
-            size="small" 
-          />
+          <CountChip label={getSportOpportunityCount('All')} size="small" />
         </Box>
 
-        {/* Individual Sport Buttons */}
+        {/* Individual Sports */}
         {availableSports.map((sport) => (
           <Box key={sport} sx={{ display: 'flex', alignItems: 'center' }}>
             <SportButton
@@ -102,43 +131,10 @@ const SportFilterBar = () => {
             >
               {sport}
             </SportButton>
-            <CountChip 
-              label={getSportOpportunityCount(sport)} 
-              size="small" 
-            />
+            <CountChip label={getSportOpportunityCount(sport)} size="small" />
           </Box>
         ))}
       </Box>
-
-      {/* Active Filters Summary */}
-      {(filters.leagues.length > 0 || filters.bookmakers.length > 0 || filters.minProfit > 0) && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-          {filters.leagues.length > 0 && (
-            <Chip
-              label={`${filters.leagues.length} league${filters.leagues.length > 1 ? 's' : ''}`}
-              size="small"
-              variant="outlined"
-              color="primary"
-            />
-          )}
-          {filters.bookmakers.length > 0 && (
-            <Chip
-              label={`${filters.bookmakers.length} bookmaker${filters.bookmakers.length > 1 ? 's' : ''}`}
-              size="small"
-              variant="outlined"
-              color="primary"
-            />
-          )}
-          {filters.minProfit > 0 && (
-            <Chip
-              label={`Min ${filters.minProfit}% profit`}
-              size="small"
-              variant="outlined"
-              color="secondary"
-            />
-          )}
-        </Box>
-      )}
     </FilterBarContainer>
   );
 };

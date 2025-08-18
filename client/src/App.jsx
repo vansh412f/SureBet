@@ -3,6 +3,7 @@ import React from 'react';
 import { Box, CssBaseline } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Header from './components/layout/Header';
+import Footer from './components/layout/Footer'; // ✅ Footer import
 import SportFilterBar from './components/filters/SportFilterBar';
 import FilterSidebar from './components/filters/FilterSidebar';
 import OpportunityTable from './components/table/OpportunityTable';
@@ -55,6 +56,7 @@ function App() {
           </Box>
         </TableContainer>
       </MainContent>
+      <Footer />
     </AppContainer>
   );
 }

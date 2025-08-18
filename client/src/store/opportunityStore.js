@@ -1,24 +1,36 @@
-// /src/store/opportunityStore.js
 import { create } from 'zustand';
 
 export const useOpportunityStore = create((set, get) => ({
-  // State
+  // --- State ---
   opportunities: [],
+  stats: {
+    matchesScanned: 0,
+  },
   filters: {
     sport: 'All',
     leagues: [],
     bookmakers: [],
     minProfit: 0,
   },
+  viewMode: 'live', // 'live' or 'past'
   isLoading: true,
-  connectionError: null, 
+  connectionError: null,
+  apiStatus: 'ok', // 'ok' or 'limit_reached'
 
-  // Actions
-  setOpportunities: (opportunities) =>
-    set({ opportunities, isLoading: false, connectionError: null }),
+  // --- Actions ---
+  setOpportunities: (payload) =>
+    set({
+      opportunities: payload.opportunities || [],
+      stats: payload.stats || { matchesScanned: 0 },
+      isLoading: false,
+      connectionError: null,
+      apiStatus: 'ok', // Reset apiStatus to 'ok' on successful data fetch
+    }),
 
-   setConnectionError: (error) => 
+  setConnectionError: (error) =>
     set({ connectionError: error, isLoading: false }),
+
+  setApiStatus: (status) => set({ apiStatus: status }),
 
   updateFilter: (filterKey, value) =>
     set((state) => ({
@@ -28,7 +40,6 @@ export const useOpportunityStore = create((set, get) => ({
       },
     })),
 
-  // Reset filters
   resetFilters: () =>
     set({
       filters: {
@@ -39,37 +50,39 @@ export const useOpportunityStore = create((set, get) => ({
       },
     }),
 
-  // Computed getters
+  setViewMode: (mode) => set({ viewMode: mode }),
+
+  // --- Getters ---
+
   getFilteredOpportunities: () => {
-    const { opportunities, filters } = get();
-    
-    return opportunities.filter((opp) => {
-      // Sport filter
-      if (filters.sport !== 'All' && opp.sport !== filters.sport) {
+    const { opportunities, filters, viewMode } = get();
+
+    return opportunities.filter((op) => {
+      // View mode filter (status check: 'live' vs 'past')
+      if (op.status !== viewMode) {
+        return false;
+      }
+
+      // Sport filter (uses sport_title)
+      if (filters.sport !== 'All' && op.sport_title !== filters.sport) {
         return false;
       }
 
       // Leagues filter
-      if (filters.leagues.length > 0 && !filters.leagues.includes(opp.league)) {
+      if (filters.leagues.length > 0 && !filters.leagues.includes(op.sport_title)) {
         return false;
       }
 
       // Bookmakers filter
       if (filters.bookmakers.length > 0) {
-        const oppBookmakers = [
-          ...Object.keys(opp.bookmaker1 || {}),
-          ...Object.keys(opp.bookmaker2 || {}),
-        ];
-        const hasMatchingBookmaker = filters.bookmakers.some(bookmaker =>
-          oppBookmakers.includes(bookmaker)
+        const hasMatchingBookmaker = op.bets_to_place.some((bet) =>
+          filters.bookmakers.includes(bet.bookmaker_title)
         );
-        if (!hasMatchingBookmaker) {
-          return false;
-        }
+        if (!hasMatchingBookmaker) return false;
       }
 
       // Profit filter
-      if (opp.profit < filters.minProfit) {
+      if (op.profit_percentage < filters.minProfit) {
         return false;
       }
 
@@ -77,49 +90,32 @@ export const useOpportunityStore = create((set, get) => ({
     });
   },
 
-  // Helper methods for dynamic filter options
   getAvailableSports: () => {
     const { opportunities } = get();
-    const sports = [...new Set(opportunities.map(opp => opp.sport))];
+    const sports = [...new Set(opportunities.map((op) => op.sport_title))];
     return sports.sort();
   },
 
   getAvailableLeagues: () => {
     const { opportunities, filters } = get();
     let filteredOpps = opportunities;
-    
-    // Filter by sport first if selected
+
     if (filters.sport !== 'All') {
-      filteredOpps = opportunities.filter(opp => opp.sport === filters.sport);
+      filteredOpps = opportunities.filter((op) => op.sport_title === filters.sport);
     }
-    
-    const leagues = [...new Set(filteredOpps.map(opp => opp.league))];
+
+    const leagues = [...new Set(filteredOpps.map((op) => op.sport_title))];
     return leagues.sort();
   },
 
   getAvailableBookmakers: () => {
-    const { opportunities, filters } = get();
-    let filteredOpps = opportunities;
-    
-    // Filter by sport and leagues first if selected
-    if (filters.sport !== 'All') {
-      filteredOpps = filteredOpps.filter(opp => opp.sport === filters.sport);
-    }
-    
-    if (filters.leagues.length > 0) {
-      filteredOpps = filteredOpps.filter(opp => filters.leagues.includes(opp.league));
-    }
-    
+    const { opportunities } = get();
     const bookmakers = new Set();
-    filteredOpps.forEach(opp => {
-      if (opp.bookmaker1) {
-        Object.keys(opp.bookmaker1).forEach(bm => bookmakers.add(bm));
-      }
-      if (opp.bookmaker2) {
-        Object.keys(opp.bookmaker2).forEach(bm => bookmakers.add(bm));
-      }
+
+    opportunities.forEach((op) => {
+      op.bets_to_place.forEach((bet) => bookmakers.add(bet.bookmaker_title));
     });
-    
+
     return [...bookmakers].sort();
   },
 }));
