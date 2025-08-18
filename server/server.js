@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const { runArbitrageCheck } = require('./services/arbitrageProcessor');
@@ -9,7 +10,10 @@ dotenv.config();
 connectDB();
 
 const app = express();
-const PORT = 5000;
+app.use(cors({
+  origin: 'https://your-vercel-frontend-url.vercel.app' // Replace with your Vercel URL
+}));
+const PORT = process.env.PORT || 5000;
 
 app.get('/', (req, res) => {
   res.json({ message: "Arbitrage Finder API is running" });
