@@ -6,7 +6,7 @@ const TARGET_BOOKMAKERS = ['betway', 'williamhill', 'betfair_sb_uk', 'sport888',
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-const runArbitrageCheck = async () => {
+const runArbitrageCheck = async (io) => {
     await Opportunity.deleteMany({});
     console.log('Cleared existing opportunities.');
 
@@ -137,6 +137,11 @@ const runArbitrageCheck = async () => {
 
         console.log(`Saved/Updated ${totalHistoricalSaved} historical matches.`);
         console.log(`Found and stored ${totalOpportunitiesFound} new opportunities.`);
+        if (io) {
+        const opportunities = await Opportunity.find({});
+        io.emit('new_opportunities', opportunities);
+        console.log('Broadcasted latest opportunities to all clients.');
+    }
     } catch (error) {
         console.error('Error in arbitrage processing:', error);
     }
