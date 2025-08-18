@@ -11,7 +11,7 @@ connectDB();
 
 const app = express();
 app.use(cors({
-  origin: 'https://your-vercel-frontend-url.vercel.app' // Replace with your Vercel URL
+  origin: 'https://sure-bet-hazel.vercel.app/' // Replace with your Vercel URL
 }));
 const PORT = process.env.PORT || 5000;
 
