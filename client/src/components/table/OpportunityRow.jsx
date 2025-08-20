@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   TableRow,
   TableCell,
   Typography,
   Box,
   Chip,
+  TextField,         // <-- ADD TextField
+  InputAdornment,
 } from '@mui/material';
 import {
   Timer,
@@ -56,8 +58,6 @@ const OpportunityRow = ({ opportunity }) => {
     return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
   };
 
-  // Calculate total wager amount for all bets
-  const totalWager = opportunity.bets_to_place.reduce((sum, bet) => sum + (bet.wager_amount || 0), 0);
 
   return (
     <TableRow hover>
@@ -84,7 +84,7 @@ const OpportunityRow = ({ opportunity }) => {
             {opportunity.profit_percentage?.toFixed(2)}%
           </Typography>
           <Typography variant="caption" color="textSecondary" display="block">
-            ${opportunity.total_profit_on_100?.toFixed(2)} / $100
+            ${opportunity.profit_percentage?.toFixed(2)} / $100
           </Typography>
         </Box>
       </ProfitCell>
@@ -107,7 +107,7 @@ const OpportunityRow = ({ opportunity }) => {
                   @{bet.outcome_price.toFixed(2)}
                 </OddsText>
                 <Typography variant="caption" color="textSecondary">
-                  Stake ${bet.wager_amount?.toFixed(2)} (Total: ${totalWager.toFixed(2)})
+                  Stake ${bet.wager_amount?.toFixed(2)} 
                 </Typography>
               </Box>
             </BetBox>

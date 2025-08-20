@@ -1,4 +1,3 @@
-// /src/store/opportunityStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -34,32 +33,28 @@ export const useOpportunityStore = create(
       connectionError: null,
       apiStatus: 'ok', // 'ok' | 'limit_reached'
 
-     setOpportunities: (payload) =>
-    set({
-        // CORRECTED: This now completely replaces the old list with the new one.
-        // The backend is the source of truth for what is 'live' or 'past'.
-        opportunities: payload.opportunities || [],
-        
-        // This correctly takes the stats object (including the accurate nextRunTimestamp) from the backend.
-        stats: payload.stats || { matchesScanned: 0, lastUpdated: null, nextRunTimestamp: null },
-        
-        // Resetting all status flags on a successful data receipt.
-        isLoading: false,
-        connectionError: null,
-        apiStatus: 'ok',
-    }),
+      // --- Actions ---
+      setOpportunities: (payload) =>
+        set({
+          opportunities: payload.opportunities || [],
+          stats: payload.stats || { matchesScanned: 0, lastUpdated: null, nextRunTimestamp: null },
+          isLoading: false,
+          connectionError: null,
+          apiStatus: payload.opportunities ? 'ok' : get().apiStatus, // Only reset to 'ok' if valid data received
+        }),
 
       setConnectionError: (error) =>
         set({
           connectionError: error,
           isLoading: false,
-          apiStatus: 'ok',
+          apiStatus: 'ok', // Reset apiStatus to avoid conflicts with connection error
         }),
 
       setApiStatus: (status) =>
         set({
           apiStatus: status,
           connectionError: status === 'limit_reached' ? null : get().connectionError,
+          isLoading: status === 'limit_reached' ? false : get().isLoading,
         }),
 
       updateStatus: (newStatus) =>

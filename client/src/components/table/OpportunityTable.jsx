@@ -86,7 +86,6 @@ const OpportunityTable = () => {
   const [sortField, setSortField] = useState('profit_percentage');
   const [sortDirection, setSortDirection] = useState('desc');
   const [page, setPage] = useState(1);
-  const [stakes, setStakes] = useState({}); // New state for custom stakes
 
   const filteredOpportunities = getFilteredOpportunities();
 
@@ -116,14 +115,8 @@ const OpportunityTable = () => {
     setPage(newPage);
   };
 
-  const handleStakeChange = (match_id, newStake) => {
-    setStakes((prev) => ({
-      ...prev,
-      [match_id]: parseFloat(newStake) || 100, // Fallback to 100 if invalid
-    }));
-  };
-
   // --- EMPTY STATES ---
+  // Priority 1: Connection Error (applies to both views)
   if (connectionError) {
     return (
       <StyledEmptyCard>
@@ -140,23 +133,8 @@ const OpportunityTable = () => {
     );
   }
 
-  if (isLoading) {
-    return (
-      <StyledEmptyCard>
-        <CircularProgress size={56} sx={{ mb: 3 }} />
-        <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
-          {liveStatus.message}
-        </Typography>
-        {liveStatus.matchesScanned > 0 && (
-          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
-            Matches scanned: {liveStatus.matchesScanned}
-          </Typography>
-        )}
-      </StyledEmptyCard>
-    );
-  }
-
-  if (apiStatus === 'limit_reached') {
+  // Priority 2: API Limit Reached (only for live view)
+  if (apiStatus === 'limit_reached' && viewMode === 'live') {
     return (
       <StyledEmptyCard>
         <EmptyIconWrapper>
@@ -175,44 +153,62 @@ const OpportunityTable = () => {
     );
   }
 
-  if (filteredOpportunities.length === 0 && viewMode === 'live') {
+  // Priority 3: Loading State (only for live view)
+  if (isLoading && viewMode === 'live') {
     return (
       <StyledEmptyCard>
-        <EmptyIconWrapper>
-          <SearchOff sx={{ fontSize: 40, color: 'primary.main' }} />
-        </EmptyIconWrapper>
+        <CircularProgress size={56} sx={{ mb: 3 }} />
         <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
-          No Live Opportunities
+          {liveStatus.message}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
-          Nothing is live right now — but you can review what you missed.
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3, px: 4, borderRadius: 2, fontWeight: 600 }}
-          onClick={() => setViewMode('past')}
-        >
-          View Past Opportunities
-        </Button>
+        {liveStatus.matchesScanned > 0 && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
+            Matches scanned: {liveStatus.matchesScanned}
+          </Typography>
+        )}
       </StyledEmptyCard>
     );
   }
 
+  // Priority 4: Empty States (view-aware)
   if (filteredOpportunities.length === 0) {
-    return (
-      <StyledEmptyCard>
-        <EmptyIconWrapper>
-          <History sx={{ fontSize: 40, color: 'warning.main' }} />
-        </EmptyIconWrapper>
-        <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
-          No Results Match
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
-          Try adjusting your filters to explore more opportunities.
-        </Typography>
-      </StyledEmptyCard>
-    );
+    if (viewMode === 'live') {
+      return (
+        <StyledEmptyCard>
+          <EmptyIconWrapper>
+            <SearchOff sx={{ fontSize: 40, color: 'primary.main' }} />
+          </EmptyIconWrapper>
+          <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
+            No Live Opportunities
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
+            Nothing is live right now — but you can review what you missed.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3, px: 4, borderRadius: 2, fontWeight: 600 }}
+            onClick={() => setViewMode('past')}
+          >
+            View Past Opportunities
+          </Button>
+        </StyledEmptyCard>
+      );
+    } else {
+      return (
+        <StyledEmptyCard>
+          <EmptyIconWrapper>
+            <History sx={{ fontSize: 40, color: 'warning.main' }} />
+          </EmptyIconWrapper>
+          <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
+            No Past Opportunities
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
+            No past opportunities have been recorded yet.
+          </Typography>
+        </StyledEmptyCard>
+      );
+    }
   }
 
   // --- TABLE RENDER ---
@@ -273,8 +269,6 @@ const OpportunityTable = () => {
               <OpportunityRow
                 key={opportunity.match_id}
                 opportunity={opportunity}
-                customStake={stakes[opportunity.match_id]}
-                onStakeChange={handleStakeChange}
               />
             ))}
           </TableBody>

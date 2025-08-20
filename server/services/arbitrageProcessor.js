@@ -1,4 +1,3 @@
-// /services/arbitrageProcessor.js
 const axios = require('axios');
 const cronParser = require('cron-parser');
 const Match = require('../models/Match');
@@ -107,156 +106,155 @@ const runArbitrageCheck = async (io) => {
   let totalHistoricalSaved = 0;
   const live_opportunities = [];
 
-  // In /services/arbitrageProcessor.js, replace your existing "for" loop
-
-for (const sport of activeSports) {
+  for (const sport of activeSports) {
     console.log(`Fetching odds for ${sport.title}...`);
     const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport.key}/odds?apiKey=${apiKey}&regions=uk,eu`;
 
     let matches = [];
     try {
-        const oddsResponse = await axios.get(oddsUrl);
-        matches = oddsResponse.data;
+      const oddsResponse = await axios.get(oddsUrl);
+      matches = oddsResponse.data;
     } catch (e) {
-        if (e.response && (e.response.status === 401 || e.response.status === 429)) {
-            console.error(`API Key ${currentKeyIndex + 1} exhausted (odds).`);
-            io?.emit('api_error', {
-                message: "Oops! We've hit our data limit. The system has notified the admin and will be back online shortly.",
-            });
-            const nextIndex = currentKeyIndex + 1;
-            if (nextIndex >= apiKeys.length) {
-                console.error('❌ All API keys have been exhausted.');
-                await writeCurrentKeyIndex(apiKeys.length - 1);
-                io?.emit('api_error', { message: 'All API keys have been exhausted.' });
-                return;
-            }
-            await writeCurrentKeyIndex(nextIndex);
-            console.log(`➡️ Switching to API Key ${nextIndex + 1} on next run.`);
-            return;
+      if (e.response && (e.response.status === 401 || e.response.status === 429)) {
+        console.error(`API Key ${currentKeyIndex + 1} exhausted (odds).`);
+        io?.emit('api_error', {
+          message: "Oops! We've hit our data limit. The system has notified the admin and will be back online shortly.",
+        });
+        const nextIndex = currentKeyIndex + 1;
+        if (nextIndex >= apiKeys.length) {
+          console.error('❌ All API keys have been exhausted.');
+          await writeCurrentKeyIndex(apiKeys.length - 1);
+          io?.emit('api_error', { message: 'All API keys have been exhausted.' });
+          return;
         }
-        console.error(`Error fetching odds for ${sport.key}:`, e.message);
-        continue;
+        await writeCurrentKeyIndex(nextIndex);
+        console.log(`➡️ Switching to API Key ${nextIndex + 1} on next run.`);
+        return;
+      }
+      console.error(`Error fetching odds for ${sport.key}:`, e.message);
+      continue;
     }
 
     // --- ACCURATE Credit Safety Brake ---
     // First, filter the matches to see exactly what we are going to process.
     const timeFilteredMatches = matches.filter(
-        (match) => new Date(match.commence_time) < oneWeekFromNow
+      (match) => new Date(match.commence_time) < oneWeekFromNow
     );
     const fullyFilteredMatches = timeFilteredMatches
-        .map((match) => {
-            const filteredBookmakers = match.bookmakers.filter((bookmaker) =>
-                TARGET_BOOKMAKERS.includes(bookmaker.key)
-            );
-            return { ...match, bookmakers: filteredBookmakers };
-        })
-        .filter((match) => match.bookmakers.length >= 2);
+      .map((match) => {
+        const filteredBookmakers = match.bookmakers.filter((bookmaker) =>
+          TARGET_BOOKMAKERS.includes(bookmaker.key)
+        );
+        return { ...match, bookmakers: filteredBookmakers };
+      })
+      .filter((match) => match.bookmakers.length >= 2);
 
     // Now, calculate the ACCURATE cost of this batch.
     let costOfThisBatch = 0;
     fullyFilteredMatches.forEach(match => {
-        costOfThisBatch += match.bookmakers.length;
+      costOfThisBatch += match.bookmakers.length;
     });
 
     if (processedOddsSnapshots + costOfThisBatch > CREDIT_SAFETY_LIMIT) {
-        console.warn(`⚠️ Credit safety limit would be exceeded (Current: ${processedOddsSnapshots}, Batch Cost: ${costOfThisBatch}). Stopping fetch.`);
-        io?.emit('status_update', {
-            message: 'Credit safety limit reached. Pausing further scans for this run.',
-        });
-        break; // Stop fetching more sports
+      console.warn(`⚠️ Credit safety limit would be exceeded (Current: ${processedOddsSnapshots}, Batch Cost: ${costOfThisBatch}). Stopping fetch.`);
+      io?.emit('status_update', {
+        message: 'Credit safety limit reached. Pausing further scans for this run.',
+      });
+      break; // Stop fetching more sports
     }
     // If the check passes, update the counter BEFORE processing
     processedOddsSnapshots += costOfThisBatch;
 
     // Now, process the matches you've already filtered.
-    for (const match of fullyFilteredMatches) { // Use the already filtered list
-        // --- Save raw match (historical) ---
-        const matchData = {
-            id: match.id,
-            sport_key: match.sport_key,
-            sport_title: match.sport_title,
-            commence_time: new Date(match.commence_time),
-            home_team: match.home_team,
-            away_team: match.away_team,
-            bookmakers: match.bookmakers.map((bookmaker) => ({
-                key: bookmaker.key,
-                title: bookmaker.title,
-                last_update: new Date(bookmaker.last_update),
-                markets: bookmaker.markets.map((market) => ({
-                    key: market.key,
-                    outcomes: market.outcomes.map((outcome) => ({
-                        name: outcome.name,
-                        price: outcome.price,
-                    })),
-                })),
+    for (const match of fullyFilteredMatches) {
+      // --- Save raw match (historical) ---
+      const matchData = {
+        id: match.id,
+        sport_key: match.sport_key,
+        sport_title: match.sport_title,
+        commence_time: new Date(match.commence_time),
+        home_team: match.home_team,
+        away_team: match.away_team,
+        bookmakers: match.bookmakers.map((bookmaker) => ({
+          key: bookmaker.key,
+          title: bookmaker.title,
+          last_update: new Date(bookmaker.last_update),
+          markets: bookmaker.markets.map((market) => ({
+            key: market.key,
+            outcomes: market.outcomes.map((outcome) => ({
+              name: outcome.name,
+              price: outcome.price,
             })),
-        };
-        await Match.findOneAndUpdate({ id: match.id }, matchData, {
-            upsert: true,
-            new: true,
-        });
-        totalHistoricalSaved++;
+          })),
+        })),
+      };
+      await Match.findOneAndUpdate({ id: match.id }, matchData, {
+        upsert: true,
+        new: true,
+      });
+      totalHistoricalSaved++;
 
-        // --- Arbitrage calculation ---
-        const outcomes = new Map();
-        match.bookmakers.forEach((bookmaker) => {
-            const h2hMarket = bookmaker.markets.find((market) => market.key === 'h2h');
-            if (!h2hMarket) return;
-            h2hMarket.outcomes.forEach((outcome) => {
-                const currentBest = outcomes.get(outcome.name);
-                if (!currentBest || outcome.price > currentBest.best_price) {
-                    outcomes.set(outcome.name, {
-                        best_price: outcome.price,
-                        bookmaker_key: bookmaker.key,
-                        bookmaker_title: bookmaker.title,
-                    });
-                }
+      // --- Arbitrage calculation ---
+      const outcomes = new Map();
+      match.bookmakers.forEach((bookmaker) => {
+        const h2hMarket = bookmaker.markets.find((market) => market.key === 'h2h');
+        if (!h2hMarket) return;
+        h2hMarket.outcomes.forEach((outcome) => {
+          const currentBest = outcomes.get(outcome.name);
+          if (!currentBest || outcome.price > currentBest.best_price) {
+            outcomes.set(outcome.name, {
+              best_price: outcome.price,
+              bookmaker_key: bookmaker.key,
+              bookmaker_title: bookmaker.title,
             });
+          }
         });
+      });
 
-        const numOutcomes = outcomes.size;
-        if (numOutcomes !== 2 && numOutcomes !== 3) continue;
+      const numOutcomes = outcomes.size;
+      if (numOutcomes !== 2 && numOutcomes !== 3) continue;
 
-        let sumProb = 0;
-        outcomes.forEach((info) => (sumProb += 1 / info.best_price));
+      let sumProb = 0;
+      outcomes.forEach((info) => (sumProb += 1 / info.best_price));
 
-        if (sumProb < 1) {
-            const profit_percentage = (1 / sumProb - 1) * 100;
-            const total_stake = 100;
-            const total_profit_on_100 = total_stake * (1 / sumProb - 1);
-            const bets = Array.from(outcomes.entries()).map(([outcome_name, info]) => ({
-                bookmaker_key: info.bookmaker_key,
-                bookmaker_title: info.bookmaker_title,
-                outcome_name,
-                outcome_price: info.best_price,
-                wager_amount: (total_stake * (1 / info.best_price)) / sumProb,
-            }));
-            live_opportunities.push({
-                match_id: match.id,
-                sport_key: match.sport_key,
-                sport_title: match.sport_title,
-                home_team: match.home_team,
-                away_team: match.away_team,
-                commence_time: new Date(match.commence_time),
-                profit_percentage,
-                total_profit_on_100,
-                bets_to_place: bets,
-                last_updated: new Date(),
-                status: 'live',
-            });
-        }
+      if (sumProb < 1) {
+        const profit_percentage = (1 / sumProb - 1) * 100;
+const total_profit_on_100 = (100 / sumProb) - 100;
+
+        const bets = Array.from(outcomes.entries()).map(([outcome_name, info]) => ({
+    bookmaker_key: info.bookmaker_key,
+    bookmaker_title: info.bookmaker_title,
+    outcome_name,
+    outcome_price: info.best_price,
+    // Wager amount is removed from here
+}));
+        // --- END of replacement block ---
+        live_opportunities.push({
+          match_id: match.id,
+          sport_key: match.sport_key,
+          sport_title: match.sport_title,
+          home_team: match.home_team,
+          away_team: match.away_team,
+          commence_time: new Date(match.commence_time),
+          profit_percentage,
+          total_profit_on_100,
+          bets_to_place: bets,
+          last_updated: new Date(),
+          status: 'live',
+        });
+      }
     }
 
     console.log(`📊 Processed snapshots: ${processedOddsSnapshots}/${CREDIT_SAFETY_LIMIT}`);
 
     // Emit progress update after finishing a sport
     io?.emit('status_update', {
-        message: `Scanning ${sport.title}...`,
-        matchesScanned: totalHistoricalSaved,
+      message: `Scanning ${sport.title}...`,
+      matchesScanned: totalHistoricalSaved,
     });
 
     await delay(2000);
-}
+  }
 
   console.log(`Saved/Updated ${totalHistoricalSaved} historical matches.`);
   console.log(`Calculated ${live_opportunities.length} currently live opportunities.`);
@@ -264,42 +262,40 @@ for (const sport of activeSports) {
   // --- Status maintenance ---
   const liveMatchIds = live_opportunities.map((opp) => opp.match_id);
   await Opportunity.updateMany(
-    { match_id: { $nin: liveMatchIds } },
+    { status: 'live', match_id: { $nin: liveMatchIds } },
     { $set: { status: 'past' } }
   );
 
   for (const opp of live_opportunities) {
     await Opportunity.findOneAndUpdate(
       { match_id: opp.match_id },
-      { ...opp, status: 'live' },
+      { ...opp, status: 'live' }, // Explicitly set status to 'live'
       { upsert: true, new: true }
     );
   }
   console.log(`Upserted ${live_opportunities.length} 'live' opportunities.`);
 
-   let nextRunTimestamp = null;
-     if (cronExpression) { // <-- ADD THIS CHECK
-        try {
-            const interval = cronParser.parseExpression(cronExpression);
-            nextRunTimestamp = interval.next().toDate();
-        } catch (err) {
-            console.error("Could not parse cron expression:", err.message);
-        }
-    }
-
-    // Final broadcast with all stats
-    if (io) {
-        const opportunities = await Opportunity.find({});
-        io.emit('new_opportunities', {
-            opportunities,
-            stats: {
-                matchesScanned: totalHistoricalSaved,
-                lastUpdated: new Date(),
-                nextRunTimestamp, // <-- ADD THIS
-            },
-        });
-        console.log('Broadcasted latest data to all clients.');
-    }
+  const cronExpression = '0 * * * *'; // Use the actual schedule string
+  let nextRunTimestamp = null;
+  try {
+    const interval = cronParser.parseExpression(cronExpression);
+    nextRunTimestamp = interval.next().toDate();
+  } catch (err) {
+    console.error("Could not parse cron expression:", err.message);
+  }
+   if (io) {
+    // Fetch the complete, updated list of ALL opportunities from the DB
+    const allOpportunities = await Opportunity.find({});
+    io.emit('new_opportunities', {
+      opportunities: allOpportunities, // Send the full list
+      stats: {
+        matchesScanned: totalHistoricalSaved,
+        lastUpdated: new Date(),
+        nextRunTimestamp,
+      },
+    });
+    console.log(`Broadcasted ${allOpportunities.length} total opportunities to all clients.`);
+  }
 };
 
 module.exports = { runArbitrageCheck };
