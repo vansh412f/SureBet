@@ -10,6 +10,7 @@ import {
   Timer,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { formatDistanceToNow } from 'date-fns';
 
 const ProfitCell = styled(TableCell)(({ theme }) => ({
   color: theme.palette.success.main,
@@ -49,6 +50,14 @@ const OpportunityRow = ({ opportunity }) => {
       minute: '2-digit',
     });
   };
+
+  const formatRelativeTime = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+  };
+
+  // Calculate total wager amount for all bets
+  const totalWager = opportunity.bets_to_place.reduce((sum, bet) => sum + (bet.wager_amount || 0), 0);
 
   return (
     <TableRow hover>
@@ -98,19 +107,26 @@ const OpportunityRow = ({ opportunity }) => {
                   @{bet.outcome_price.toFixed(2)}
                 </OddsText>
                 <Typography variant="caption" color="textSecondary">
-                  Stake ${bet.wager_amount?.toFixed(2)}
+                  Stake ${bet.wager_amount?.toFixed(2)} (Total: ${totalWager.toFixed(2)})
                 </Typography>
               </Box>
             </BetBox>
           ))}
         </BetsContainer>
       </TableCell>
-      
+
       {/* Match Time */}
       <TableCell>
         <Typography variant="body2" color="textSecondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Timer fontSize="inherit" />
           {formatTime(opportunity.commence_time)}
+        </Typography>
+      </TableCell>
+
+      {/* Fetched At */}
+      <TableCell>
+        <Typography variant="body2" color="textSecondary">
+          {formatRelativeTime(opportunity.last_updated)}
         </Typography>
       </TableCell>
     </TableRow>

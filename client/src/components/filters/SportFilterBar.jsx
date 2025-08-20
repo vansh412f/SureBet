@@ -4,9 +4,9 @@ import { styled } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
 
 const FilterBarContainer = styled(Box)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper, // midnight
+  backgroundColor: theme.palette.background.paper,
   padding: theme.spacing(2),
-  borderBottom: `1px solid ${theme.palette.divider}`, // slate
+  borderBottom: `1px solid ${theme.palette.divider}`,
   display: 'flex',
   flexWrap: 'wrap',
   gap: theme.spacing(1),
@@ -16,7 +16,7 @@ const FilterBarContainer = styled(Box)(({ theme }) => ({
     height: 4,
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: theme.palette.primary.main, // electricBlue
+    backgroundColor: theme.palette.primary.main,
     borderRadius: 2,
   },
 }));
@@ -27,13 +27,13 @@ const StatBlock = styled(Box)(({ theme }) => ({
   padding: theme.spacing(0.5, 1.5),
   borderRadius: 6,
   border: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.background.default, // charcoal
+  backgroundColor: theme.palette.background.default,
 }));
 
 const StatNumber = styled(Typography)(({ theme }) => ({
   fontWeight: 700,
   marginLeft: theme.spacing(0.5),
-  color: theme.palette.primary.main, // electricBlue highlight
+  color: theme.palette.primary.main,
 }));
 
 const SportButton = styled(Button)(({ theme, selected }) => ({
@@ -65,7 +65,7 @@ const SportButton = styled(Button)(({ theme, selected }) => ({
 const CountChip = styled(Chip)(({ theme }) => ({
   height: 20,
   fontSize: '0.75rem',
-  backgroundColor: theme.palette.secondary.main, // vibrantGreen
+  backgroundColor: theme.palette.secondary.main,
   color: 'white',
   marginLeft: theme.spacing(0.5),
   fontWeight: 600,
@@ -74,13 +74,15 @@ const CountChip = styled(Chip)(({ theme }) => ({
 const SportFilterBar = () => {
   const {
     opportunities,
-    filters,
     updateFilter,
     getAvailableSports,
+    getCurrentFilters,
     stats,
+    viewMode,
   } = useOpportunityStore();
 
   const availableSports = getAvailableSports();
+  const filters = getCurrentFilters();
   const selectedSport = filters.sport;
 
   const handleSportChange = (sport) => {
@@ -91,10 +93,12 @@ const SportFilterBar = () => {
   };
 
   const getSportOpportunityCount = (sport) => {
+    const viewOpportunities = opportunities.filter(op => op.status === viewMode);
     if (sport === 'All') {
-      return opportunities.length;
+      return viewOpportunities.length;
     }
-    return opportunities.filter((opp) => opp.sport_title === sport).length;
+    // Then, count within that view-specific list
+    return viewOpportunities.filter((opp) => opp.sport_title === sport).length;
   };
 
   return (

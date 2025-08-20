@@ -17,10 +17,10 @@ import {
 import { styled } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
 import OpportunityRow from './OpportunityRow';
-import { SearchOff, History, WifiOff } from '@mui/icons-material';
+import { SearchOff, History, WifiOff, ErrorOutline } from '@mui/icons-material';
 
 const TableContainerStyled = styled(TableContainer)(({ theme }) => ({
-  height: 'calc(100vh - 128px)', // Header + SportFilterBar height
+  height: 'calc(100vh - 128px)',
   backgroundColor: theme.palette.background.paper,
   '& .MuiTableCell-root': {
     borderColor: theme.palette.divider,
@@ -46,7 +46,6 @@ const StyledTableHead = styled(TableHead)(({ theme }) => ({
   },
 }));
 
-// 🔹 Modern, Polished Empty State
 const StyledEmptyCard = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -80,18 +79,21 @@ const OpportunityTable = () => {
     connectionError,
     viewMode,
     setViewMode,
+    liveStatus,
+    apiStatus,
   } = useOpportunityStore();
 
   const [sortField, setSortField] = useState('profit_percentage');
   const [sortDirection, setSortDirection] = useState('desc');
   const [page, setPage] = useState(1);
+  const [stakes, setStakes] = useState({}); // New state for custom stakes
 
   const filteredOpportunities = getFilteredOpportunities();
 
   const sortedAndPaginatedOpportunities = useMemo(() => {
     const sorted = [...filteredOpportunities].sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
+      const aValue = sortField === 'last_updated' ? new Date(a[sortField]).getTime() : a[sortField];
+      const bValue = sortField === 'last_updated' ? new Date(b[sortField]).getTime() : b[sortField];
       return sortDirection === 'asc'
         ? aValue > bValue ? 1 : -1
         : bValue > aValue ? 1 : -1;
@@ -114,8 +116,14 @@ const OpportunityTable = () => {
     setPage(newPage);
   };
 
-  // --- EMPTY STATES ---
+  const handleStakeChange = (match_id, newStake) => {
+    setStakes((prev) => ({
+      ...prev,
+      [match_id]: parseFloat(newStake) || 100, // Fallback to 100 if invalid
+    }));
+  };
 
+  // --- EMPTY STATES ---
   if (connectionError) {
     return (
       <StyledEmptyCard>
@@ -137,10 +145,31 @@ const OpportunityTable = () => {
       <StyledEmptyCard>
         <CircularProgress size={56} sx={{ mb: 3 }} />
         <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
-          Loading Opportunities
+          {liveStatus.message}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
-          Please wait while we fetch the latest market data.
+        {liveStatus.matchesScanned > 0 && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
+            Matches scanned: {liveStatus.matchesScanned}
+          </Typography>
+        )}
+      </StyledEmptyCard>
+    );
+  }
+
+  if (apiStatus === 'limit_reached') {
+    return (
+      <StyledEmptyCard>
+        <EmptyIconWrapper>
+          <ErrorOutline sx={{ fontSize: 40, color: 'error.main' }} />
+        </EmptyIconWrapper>
+        <Typography variant="h5" fontWeight={700} sx={{ color: 'text.primary' }} gutterBottom>
+          API Usage Limit Reached
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 400, mb: 2 }}>
+          Do you see that green live button? That means everything is working fine, don’t stress.
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+          Problem: Api limit reached! Im poor :(
         </Typography>
       </StyledEmptyCard>
     );
@@ -197,8 +226,13 @@ const OpportunityTable = () => {
               <TableCell>
                 <TableSortLabel
                   active={sortField === 'profit_percentage'}
-                  direction={sortDirection}
+                  direction={sortField === 'profit_percentage' ? sortDirection : 'desc'}
                   onClick={() => handleSort('profit_percentage')}
+                  sx={{
+                    '& .MuiTableSortLabel-icon': {
+                      opacity: sortField === 'profit_percentage' ? 1 : 0.3,
+                    },
+                  }}
                 >
                   Profit
                 </TableSortLabel>
@@ -207,17 +241,41 @@ const OpportunityTable = () => {
               <TableCell>
                 <TableSortLabel
                   active={sortField === 'commence_time'}
-                  direction={sortDirection}
+                  direction={sortField === 'commence_time' ? sortDirection : 'desc'}
                   onClick={() => handleSort('commence_time')}
+                  sx={{
+                    '& .MuiTableSortLabel-icon': {
+                      opacity: sortField === 'commence_time' ? 1 : 0.3,
+                    },
+                  }}
                 >
                   Match Time
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={sortField === 'last_updated'}
+                  direction={sortField === 'last_updated' ? sortDirection : 'desc'}
+                  onClick={() => handleSort('last_updated')}
+                  sx={{
+                    '& .MuiTableSortLabel-icon': {
+                      opacity: sortField === 'last_updated' ? 1 : 0.3,
+                    },
+                  }}
+                >
+                  Fetched At
                 </TableSortLabel>
               </TableCell>
             </TableRow>
           </StyledTableHead>
           <TableBody>
             {sortedAndPaginatedOpportunities.map((opportunity) => (
-              <OpportunityRow key={opportunity.match_id} opportunity={opportunity} />
+              <OpportunityRow
+                key={opportunity.match_id}
+                opportunity={opportunity}
+                customStake={stakes[opportunity.match_id]}
+                onStakeChange={handleStakeChange}
+              />
             ))}
           </TableBody>
         </Table>

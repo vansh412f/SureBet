@@ -1,9 +1,9 @@
 // /src/App.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, CssBaseline } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Header from './components/layout/Header';
-import Footer from './components/layout/Footer'; // ✅ Footer import
+import Footer from './components/layout/Footer';
 import SportFilterBar from './components/filters/SportFilterBar';
 import FilterSidebar from './components/filters/FilterSidebar';
 import OpportunityTable from './components/table/OpportunityTable';
@@ -19,7 +19,7 @@ const AppContainer = styled(Box)(({ theme }) => ({
 const MainContent = styled(Box)(({ theme }) => ({
   display: 'flex',
   flex: 1,
-  marginTop: 64, // Account for fixed header height
+  marginTop: 64,
 }));
 
 const TableContainer = styled(Box)(({ theme }) => ({
@@ -30,8 +30,12 @@ const TableContainer = styled(Box)(({ theme }) => ({
 }));
 
 function App() {
-  // Initialize WebSocket connection and handle real-time data
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   useOpportunities();
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   return (
     <AppContainer>
@@ -43,7 +47,10 @@ function App() {
       {/* Main Layout */}
       <MainContent>
         {/* Left Sidebar - Filters */}
-        <FilterSidebar />
+        <FilterSidebar 
+          isOpen={isSidebarOpen} 
+          onToggle={toggleSidebar}
+        />
         
         {/* Right Side - Sports Filter + Table */}
         <TableContainer>
