@@ -278,11 +278,13 @@ for (const sport of activeSports) {
   console.log(`Upserted ${live_opportunities.length} 'live' opportunities.`);
 
    let nextRunTimestamp = null;
-    try {
-        const interval = cronParser.parseExpression(cronExpression);
-        nextRunTimestamp = interval.next().toDate();
-    } catch (err) {
-        console.error("Could not parse cron expression:", err.message);
+     if (cronExpression) { // <-- ADD THIS CHECK
+        try {
+            const interval = cronParser.parseExpression(cronExpression);
+            nextRunTimestamp = interval.next().toDate();
+        } catch (err) {
+            console.error("Could not parse cron expression:", err.message);
+        }
     }
 
     // Final broadcast with all stats
