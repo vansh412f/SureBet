@@ -1,4 +1,3 @@
-// /src/hooks/useCountdown.js
 import { useEffect, useState } from 'react';
 
 function formatMMSS(msRemaining) {
