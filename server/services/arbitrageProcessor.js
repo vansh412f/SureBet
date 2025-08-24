@@ -1,5 +1,5 @@
 const axios = require('axios');
-const cronParser = require('cron-parser');
+const { parseExpression } = require('cron-parser');
 const Match = require('../models/Match');
 const Opportunity = require('../models/Opportunity');
 const SystemState = require('../models/SystemState');
@@ -258,7 +258,7 @@ const runArbitrageCheck = async (io) => {
   const cronExpression = '0 * * * *';    // scheduled in server.js but only here to calculate next run time
   let nextRunTimestamp = null;
   try {
-    const interval = cronParser.parseExpression(cronExpression);
+    const interval = parseExpression(cronExpression);
     nextRunTimestamp = interval.next().toDate();
   } catch (err) {
     console.error("Could not parse cron expression:", err.message);
