@@ -1,4 +1,3 @@
-// /server/server.js
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
@@ -35,16 +34,18 @@ const PORT = process.env.PORT || 5000;
 app.get('/', (req, res) => {
   res.json({ message: "Arbitrage Finder API is running" });
 });
-const CRON_SCHEDULE = '0 * * * *'; 
+
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// --- Schedule to run every 1 hour ---
+// schedule the arbitrage check to run every hour
+const CRON_SCHEDULE = '0 * * * *'; 
 cron.schedule(CRON_SCHEDULE, () => {
   console.log('Running scheduled arbitrage check...');
-  runArbitrageCheck(io, CRON_SCHEDULE); // Pass the schedule string
+  runArbitrageCheck(io, CRON_SCHEDULE); 
 });
 
 console.log(`Scheduled arbitrage check to run every hour.`);
+// initial run on server start
 runArbitrageCheck(io, CRON_SCHEDULE);
