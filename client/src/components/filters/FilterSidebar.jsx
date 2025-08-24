@@ -1,16 +1,3 @@
-/*
- * FilterSidebar.jsx - Enhanced Filter Control Center
- * 
- * Key UI/UX Improvements & Bug Fixes:
- * - FIXED: Made stats header (MATCHES/SHOWING) sticky/fixed to prevent scrolling out of view
- * - CHANGED: Collapsed state vertical text from "SureBet" to "Filters" for better UX
- * - Enhanced smooth width transition animations for expand/collapse
- * - Improved visual hierarchy with better spacing and typography
- * - Added responsive mobile drawer functionality
- * - Premium glass-morphism design with subtle gradients
- * - Better scroll behavior with independent scrolling areas
- */
-
 import React, { useState } from 'react';
 import {
   Box,
@@ -813,3 +800,4 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
 };
 
 export default FilterSidebar;
+
