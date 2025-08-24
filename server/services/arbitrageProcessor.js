@@ -255,7 +255,7 @@ const runArbitrageCheck = async (io) => {
   }
   console.log(`Upserted ${live_opportunities.length} live opportunities.`);
 
-  const cronExpression = '0 * * * *';    // runs at the start of every hour
+  const cronExpression = '0 * * * *';    // scheduled in server.js but only here to calculate next run time
   let nextRunTimestamp = null;
   try {
     const interval = cronParser.parseExpression(cronExpression);
