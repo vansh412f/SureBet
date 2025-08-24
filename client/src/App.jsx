@@ -1,4 +1,3 @@
-// /src/App.js
 import React, { useState } from 'react';
 import { Box, CssBaseline } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -40,24 +39,14 @@ function App() {
   return (
     <AppContainer>
       <CssBaseline />
-      
-      {/* Fixed Header */}
       <Header />
-      
-      {/* Main Layout */}
       <MainContent>
-        {/* Left Sidebar - Filters */}
         <FilterSidebar 
           isOpen={isSidebarOpen} 
           onToggle={toggleSidebar}
         />
-        
-        {/* Right Side - Sports Filter + Table */}
         <TableContainer>
-          {/* Sports Filter Bar */}
           <SportFilterBar />
-          
-          {/* Main Opportunities Table */}
           <Box sx={{ flex: 1, overflow: 'hidden' }}>
             <OpportunityTable />
           </Box>
