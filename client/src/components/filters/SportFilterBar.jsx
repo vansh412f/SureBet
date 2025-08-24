@@ -1,15 +1,3 @@
-/*
- * SportFilterBar.jsx - Enhanced Sport Selection Interface
- * 
- * Key UI/UX Improvements:
- * - Redesigned sport filter buttons with premium active states
- * - Enhanced opportunity count chips with smooth animations
- * - Improved horizontal scrolling behavior on mobile
- * - Better visual hierarchy and spacing optimization
- * - Professional gradient styling and hover effects
- * - Responsive design with adaptive layouts
- */
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Box, Button, Chip, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
@@ -388,3 +376,4 @@ const SportFilterBar = () => {
 };
 
 export default SportFilterBar;
+
