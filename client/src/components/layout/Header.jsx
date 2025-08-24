@@ -1,17 +1,5 @@
 import React from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Chip,
-  IconButton,
-  Button,
-  ButtonGroup,
-  Tooltip,
-  Fade,
-  Slide
-} from '@mui/material';
+import {AppBar,Toolbar,Typography,Box,Chip,IconButton,Button,ButtonGroup,Tooltip,Fade,Slide} from '@mui/material';
 import { TrendingUp, InfoOutlined, FiberManualRecordRounded } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
@@ -293,8 +281,10 @@ const Header = () => {
       footer.scrollIntoView({ behavior: 'smooth' });
     }
   };
-
-  const countdown = useCountdown(stats?.nextRunTimestamp);
+  const nextScanTime = stats?.nextRunTimestamp;
+  const isNextScanInFuture = nextScanTime && new Date(nextScanTime) > new Date();
+  
+  const countdown = useCountdown(isNextScanInFuture ? nextScanTime : null);
   const lastScanLabel = stats?.lastUpdated
     ? new Date(stats.lastUpdated).toLocaleTimeString([], { 
         hour: '2-digit', 
@@ -387,7 +377,7 @@ const Header = () => {
               <StatusContainer>
                 <StatusInfo>
                   <StatusText>Last Scan:&nbsp;&nbsp;{lastScanLabel}</StatusText>
-                  <StatusText>Next Scan:&nbsp;&nbsp;{countdown}</StatusText>
+                  <StatusText>Next Scan:&nbsp;&nbsp;{isNextScanInFuture ? countdown : '...'}</StatusText>
                 </StatusInfo>
                 
                 <Tooltip
