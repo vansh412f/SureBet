@@ -1,10 +1,8 @@
-// /src/styles/theme.js
 import { createTheme } from '@mui/material/styles';
 
 export const theme = createTheme({
   palette: {
     mode: 'dark',
-    // The new "Deep Focus" palette
     primary: {
       main: '#007BFF', // electricBlue
     },
@@ -49,7 +47,7 @@ export const theme = createTheme({
       styleOverrides: {
         head: {
           fontWeight: 700,
-          backgroundColor: '#121212', // Match the base background
+          backgroundColor: '#121212',
         },
       },
     },
