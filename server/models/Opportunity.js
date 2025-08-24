@@ -42,6 +42,10 @@ const OpportunitySchema = new mongoose.Schema({
       outcome_price: {
         type: Number,
         required: true
+      },
+      wager_amount: { 
+        type: Number, 
+        required: true 
       }
     }
   ],
