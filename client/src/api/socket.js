@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 import { useOpportunityStore } from '../store/opportunityStore';
-// Socket.IO client configuration
+
+// socket connection to backend port
 export const socket = io(import.meta.env.VITE_WEBSOCKET_URL, {
   transports: ['websocket', 'polling'],
   timeout: 20000,
@@ -10,7 +11,6 @@ export const socket = io(import.meta.env.VITE_WEBSOCKET_URL, {
   reconnectionDelayMax: 5000,
 });
 
-// Connection event handlers
 socket.on('connect', () => {
   console.log('Connected to SureBet Hub backend:', socket.id);
   // On successful connection, clear any previous error
