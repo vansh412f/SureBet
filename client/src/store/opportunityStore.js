@@ -1,11 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
+// handling all the states here via zustand store
 export const useOpportunityStore = create(
   persist(
     (set, get) => ({
-      // --- State ---
-      opportunities: [],
+      opportunities: [],                     //array of all arbitrage opportunities
       stats: {
         matchesScanned: 0,
         lastUpdated: null,
@@ -31,9 +30,8 @@ export const useOpportunityStore = create(
       viewMode: 'live', // 'live' or 'past'
       isLoading: true,
       connectionError: null,
-      apiStatus: 'ok', // 'ok' | 'limit_reached'
+      apiStatus: 'ok', // 'ok' or 'limit_reached'
 
-      // --- Actions ---
       setOpportunities: (payload) =>
         set({
           opportunities: payload.opportunities || [],
@@ -96,7 +94,6 @@ export const useOpportunityStore = create(
 
       setViewMode: (mode) => set({ viewMode: mode }),
 
-      // --- Getters ---
       getFilteredOpportunities: () => {
         const { opportunities, viewMode, liveFilters, pastFilters } = get();
         const filters = viewMode === 'live' ? liveFilters : pastFilters;
