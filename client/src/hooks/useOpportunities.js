@@ -1,26 +1,22 @@
-// /src/hooks/useOpportunities.js
 import { useEffect } from 'react';
 import { useOpportunityStore } from '../store/opportunityStore';
 import socket from '../api/socket';
 
 export const useOpportunities = () => {
-  const { setOpportunities, setApiStatus, updateStatus } = useOpportunityStore();
+  const { setOpportunities, setApiStatus, updateStatus } = useOpportunityStore();    //action functions from store
 
   useEffect(() => {
     updateStatus({ message: 'Connecting to server...' });
-    // Handle new opportunities from the backend
     const handleNewOpportunities = (data) => {
       console.log('Received new opportunities from backend:', data);
       setOpportunities(data);
     };
 
-    // Handle API error event
     const handleApiError = (errorPayload) => {
       console.error('API limit reached:', errorPayload.message);
       setApiStatus('limit_reached');
     };
 
-    // Handle status update stream
     const handleStatusUpdate = (statusPayload) => {
       console.log('Status update:', statusPayload);
       updateStatus(statusPayload);
