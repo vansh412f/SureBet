@@ -255,7 +255,7 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
               </BookmakerName>
             </BetLeft>
             <BetRight>
-              <OddsChip label={bet.odds || 'N/A'} size="small" />
+              <OddsChip label={bet.price || 'N/A'} size="small" />
               <StakeChip
                 label={`$${(bet.wager_amount || 0).toFixed(2)}`}
                 size="small"
@@ -305,7 +305,7 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
                     </BookmakerName>
                   </Box>
                   <Box display="flex" flexDirection="column" gap={0.5}>
-                    <OddsChip label={bet.odds || 'N/A'} size="small" />
+                    <OddsChip label={bet.price || 'N/A'} size="small" />
                     <StakeChip
                       label={`$${(bet.wager_amount || 0).toFixed(2)}`}
                       size="small"
@@ -359,17 +359,22 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
       </BetsCell>
 
       <TimeCell>
-        <TimeDisplay>
-          <TimeText>
-            <Schedule fontSize="small" />
-            {formatTime(opportunity.commence_time)}
-          </TimeText>
-          <RelativeTimeText>
-            <Timer fontSize="small" />
-            {formatRelativeTime(opportunity.last_updated)}
-          </RelativeTimeText>
-        </TimeDisplay>
-      </TimeCell>
+  <TimeDisplay>
+    <TimeText>
+      <Schedule fontSize="small" />
+      {formatTime(opportunity.commence_time)}
+    </TimeText>
+  </TimeDisplay>
+</TimeCell>
+<TimeCell>
+  <TimeDisplay>
+    <RelativeTimeText>
+      <Timer fontSize="small" />
+      {formatRelativeTime(opportunity.last_updated)}
+    </RelativeTimeText>
+  </TimeDisplay>
+</TimeCell>
+
     </StyledTableRow>
   );
 };
