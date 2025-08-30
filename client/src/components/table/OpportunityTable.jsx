@@ -1,23 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TableSortLabel,
-  Paper,
-  Typography,
-  Box,
-  CircularProgress,
-  Pagination,
-  Button,
-  useMediaQuery,
-  useTheme,
-  Skeleton,
-  Card,
-  CardContent,
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, Paper, Typography, Box, CircularProgress, Pagination, Button, useMediaQuery, useTheme, Skeleton, Card, CardContent,
 } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
@@ -48,14 +30,13 @@ const pulse = keyframes`
   50% { opacity: 0.7; }
 `;
 
-// Styled Components
 const TableContainerStyled = styled(TableContainer)(({ theme }) => ({
   height: 'calc(100vh - 200px)',
   background: `linear-gradient(180deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
   backdropFilter: 'blur(20px)',
   borderRadius: 16,
   border: `1px solid ${theme.palette.divider}30`,
-  overflow: 'hidden',
+  overflow: 'auto',
   '& .MuiTableCell-root': {
     borderColor: `${theme.palette.divider}20`,
   },
@@ -77,6 +58,7 @@ const TableContainerStyled = styled(TableContainer)(({ theme }) => ({
     background: 'transparent',
   },
 }));
+
 
 const StyledTableHead = styled(TableHead)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
@@ -106,12 +88,15 @@ const StyledTableSortLabel = styled(TableSortLabel)(({ theme }) => ({
     color: `${theme.palette.primary.main} !important`,
     '& .MuiTableSortLabel-icon': {
       color: `${theme.palette.primary.main} !important`,
+      opacity: 1,
     },
   },
   '& .MuiTableSortLabel-icon': {
     transition: 'all 0.3s ease',
+    opacity: 0.5,
   },
 }));
+
 
 const EmptyStateContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -336,9 +321,30 @@ const OpportunityTable = () => {
     setPage(newPage);
   };
 
-  // Loading Skeleton
-  const renderSkeleton = () => (
-    <TableContainerStyled component={Paper} elevation={0}>
+ const renderSkeleton = () => {
+  if (isMobile) {
+    return (
+      <Box p={2}>
+        {[...Array(5)].map((_, index) => (
+          <MobileOpportunityCard key={`mobile-skeleton-${index}`} elevation={0}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" mb={2}>
+                <Box>
+                  <Skeleton variant="text" width={150} height={24} />
+                  <Skeleton variant="text" width={100} height={18} />
+                </Box>
+                <Skeleton variant="rectangular" width={80} height={50} />
+              </Box>
+              <Skeleton variant="rectangular" width="100%" height={70} />
+            </CardContent>
+          </MobileOpportunityCard>
+        ))}
+      </Box>
+    );
+  }
+
+  return (
+    <TableContainerStyled>
       <Table>
         <StyledTableHead>
           <TableRow>
@@ -351,32 +357,20 @@ const OpportunityTable = () => {
         </StyledTableHead>
         <TableBody>
           {[...Array(8)].map((_, index) => (
-            <SkeletonRow key={index}>
-              <TableCell>
-                <Skeleton variant="text" width="60%" height={24} />
-                <Skeleton variant="text" width="40%" height={20} />
-              </TableCell>
-              <TableCell>
-                <Skeleton variant="rectangular" width={80} height={40} sx={{ borderRadius: 1 }} />
-              </TableCell>
-              <TableCell>
-                <Box display="flex" flexDirection="column" gap={1}>
-                  <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-                  <Skeleton variant="rectangular" width="100%" height={32} sx={{ borderRadius: 1 }} />
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Skeleton variant="text" width="70%" height={24} />
-              </TableCell>
-              <TableCell>
-                <Skeleton variant="text" width="60%" height={24} />
-              </TableCell>
+            <SkeletonRow key={`skeleton-${index}`}>
+              <TableCell><Skeleton variant="text" width={200} /></TableCell>
+              <TableCell><Skeleton variant="text" width={80} /></TableCell>
+              <TableCell><Skeleton variant="rectangular" width={150} height={60} /></TableCell>
+              <TableCell><Skeleton variant="text" width={120} /></TableCell>
+              <TableCell><Skeleton variant="text" width={120} /></TableCell>
             </SkeletonRow>
           ))}
         </TableBody>
       </Table>
     </TableContainerStyled>
   );
+};
+
 
   // Empty States
   if (connectionError) {
