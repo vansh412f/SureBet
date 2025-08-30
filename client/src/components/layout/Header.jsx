@@ -159,7 +159,7 @@ const StatusInfo = styled(Box)(({ theme }) => ({
 }));
 
 const StatusText = styled(Typography)(({ theme }) => ({
-  fontSize: '0.65rem',
+  fontSize: '0.5rem',
   fontWeight: 600,
   color: theme.palette.text.secondary,
   lineHeight: 1.1,
