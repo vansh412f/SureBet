@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -27,7 +28,9 @@ import {
   FilterList,
   TuneRounded,
   CheckCircleRounded,
+  Close,
 } from '@mui/icons-material';
+
 import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
 
@@ -49,7 +52,8 @@ const pulseGlow = keyframes`
 
 // Styled Components
 const SidebarContainer = styled(Box)(({ theme, isOpen }) => ({
-  width: isOpen ? 320 : 0,
+  width: isOpen ? 'clamp(300px, 20vw, 360px)' : '56px',
+
   height: 'calc(100vh - 64px)',
   background: `linear-gradient(180deg, ${theme.palette.background.paper}98 0%, ${theme.palette.background.default}95 100%)`,
   backdropFilter: 'blur(20px)',
@@ -106,7 +110,6 @@ const ToggleButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-// FIXED: Made header sticky/fixed
 const StickyHeader = styled(Box)(({ theme }) => ({
   position: 'sticky',
   top: 0,
@@ -124,9 +127,9 @@ const StickyHeader = styled(Box)(({ theme }) => ({
     width: '100px',
     height: '100%',
     background: `linear-gradient(90deg, transparent, ${theme.palette.primary.main}08, transparent)`,
-    animation: `${shimmer} 4s ease-in-out infinite`,
   },
 }));
+
 
 const HeaderTop = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -203,7 +206,6 @@ const ClearButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-// FIXED: Made scrollable content area independent
 const ScrollableContent = styled(Box)(({ theme }) => ({
   flex: 1,
   overflowY: 'auto',
@@ -225,7 +227,6 @@ const ScrollableContent = styled(Box)(({ theme }) => ({
 
 const FilterSection = styled(Box)(({ theme }) => ({
   padding: theme.spacing(0, 1.2, 0.8, 1.2),
-  animation: `${slideIn} 0.5s ease-out`,
 }));
 
 const SectionHeader = styled(Box)(({ theme }) => ({
@@ -400,7 +401,7 @@ const ProfitValue = styled(Typography)(({ theme }) => ({
 
 const MobileToggleButton = styled(IconButton)(({ theme }) => ({
   position: 'fixed',
-  top: theme.spacing(8.5),
+  bottom: '20vh',
   left: theme.spacing(2),
   zIndex: 1300,
   background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
@@ -414,95 +415,28 @@ const MobileToggleButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-const FilterSidebar = ({ isOpen, onToggle }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const {
-    stats,
-    updateFilter,
-    getAvailableLeagues,
-    getAvailableBookmakers,
-    getFilteredOpportunities,
-    resetFilters,
-    getCurrentFilters,
-  } = useOpportunityStore();
+const SidebarContent = ({ 
+  isMobile, 
+  onToggle, 
+  isOpen, 
+  stats, 
+  filters, 
+  expandedSections, 
+  toggleSection, 
+  searchTerms, 
+  setSearchTerms, 
+  filteredOpportunities, 
+  handleClearAll, 
+  availableLeagues, 
+  handleSelectAll, 
+  filteredLeagues, 
+  handleLeagueChange, 
+  availableBookmakers, 
+  filteredBookmakers, 
+  handleBookmakerChange, 
+  handleProfitChange 
+}) => (
 
-  const [expandedSections, setExpandedSections] = useState({
-    leagues: true,
-    bookmakers: true,
-    profit: true,
-  });
-
-  const [searchTerms, setSearchTerms] = useState({
-    leagues: '',
-    bookmakers: '',
-  });
-
-  const filters = getCurrentFilters();
-  const availableLeagues = getAvailableLeagues();
-  const availableBookmakers = getAvailableBookmakers();
-  const filteredOpportunities = getFilteredOpportunities();
-
-  const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
-  const handleLeagueChange = (league, checked) => {
-    const newLeagues = checked
-      ? [...filters.leagues, league]
-      : filters.leagues.filter((l) => l !== league);
-    updateFilter('leagues', newLeagues);
-  };
-
-  const handleBookmakerChange = (bookmaker, checked) => {
-    const newBookmakers = checked
-      ? [...filters.bookmakers, bookmaker]
-      : filters.bookmakers.filter((b) => b !== bookmaker);
-    updateFilter('bookmakers', newBookmakers);
-  };
-
-  const handleProfitChange = (event, newValue) => {
-    updateFilter('minProfit', newValue);
-  };
-
-  const handleSelectAll = (type, items) => {
-    if (type === 'leagues') {
-      updateFilter(
-        'leagues',
-        filters.leagues.length === items.length ? [] : items
-      );
-    } else if (type === 'bookmakers') {
-      updateFilter(
-        'bookmakers',
-        filters.bookmakers.length === items.length ? [] : items
-      );
-    }
-  };
-
-  const handleClearAll = () => {
-    resetFilters();
-    setSearchTerms({
-      leagues: '',
-      bookmakers: '',
-    });
-  };
-
-  const filterItems = (items, searchTerm) =>
-    items.filter((item) =>
-      item.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-  const filteredLeagues = filterItems(availableLeagues, searchTerms.leagues);
-  const filteredBookmakers = filterItems(
-    availableBookmakers,
-    searchTerms.bookmakers
-  );
-
-  const SidebarContent = () => (
     <>
       {/* FIXED: Sticky Header */}
       <StickyHeader>
@@ -511,11 +445,16 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
             <TuneRounded fontSize="small" />
             Advanced Filters
           </HeaderTitle>
-          {!isMobile && (
-            <ToggleButton onClick={onToggle} size="small">
-              {isOpen ? <ChevronLeft /> : <ChevronRight />}
-            </ToggleButton>
-          )}
+          {!isMobile ? (
+  <ToggleButton onClick={onToggle} size="small">
+    {isOpen ? <ChevronLeft /> : <ChevronRight />}
+  </ToggleButton>
+) : (
+  <IconButton onClick={onToggle} sx={{ color: 'error.main' }}>
+    <Close />
+  </IconButton>
+)}
+
         </HeaderTop>
 
         <ClearButton
@@ -752,26 +691,122 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
       </ScrollableContent>
     </>
   );
+const FilterSidebar = ({ isOpen, onToggle }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  const stats = useOpportunityStore((state) => state.stats);
+const updateFilter = useOpportunityStore((state) => state.updateFilter);
+const getAvailableLeagues = useOpportunityStore((state) => state.getAvailableLeagues);
+const getAvailableBookmakers = useOpportunityStore((state) => state.getAvailableBookmakers);
+const getFilteredOpportunities = useOpportunityStore((state) => state.getFilteredOpportunities);
+const resetFilters = useOpportunityStore((state) => state.resetFilters);
+const getCurrentFilters = useOpportunityStore((state) => state.getCurrentFilters);
+
+
+  const [expandedSections, setExpandedSections] = useState({
+    leagues: true,
+    bookmakers: true,
+    profit: true,
+  });
+
+  const [searchTerms, setSearchTerms] = useState({
+    leagues: '',
+    bookmakers: '',
+  });
+
+  const filters = getCurrentFilters();
+  const availableLeagues = getAvailableLeagues();
+  const availableBookmakers = getAvailableBookmakers();
+  const filteredOpportunities = useMemo(() => getFilteredOpportunities(), [
+  filters.leagues,
+  filters.bookmakers,
+  filters.minProfit
+]);
+
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const handleLeagueChange = (league, checked) => {
+    const newLeagues = checked
+      ? [...filters.leagues, league]
+      : filters.leagues.filter((l) => l !== league);
+    updateFilter('leagues', newLeagues);
+  };
+
+  const handleBookmakerChange = (bookmaker, checked) => {
+    const newBookmakers = checked
+      ? [...filters.bookmakers, bookmaker]
+      : filters.bookmakers.filter((b) => b !== bookmaker);
+    updateFilter('bookmakers', newBookmakers);
+  };
+
+  const handleProfitChange = (event, newValue) => {
+    updateFilter('minProfit', newValue);
+  };
+
+  const handleSelectAll = (type, items) => {
+    if (type === 'leagues') {
+      updateFilter(
+        'leagues',
+        filters.leagues.length === items.length ? [] : items
+      );
+    } else if (type === 'bookmakers') {
+      updateFilter(
+        'bookmakers',
+        filters.bookmakers.length === items.length ? [] : items
+      );
+    }
+  };
+
+  const handleClearAll = () => {
+    resetFilters();
+    setSearchTerms({
+      leagues: '',
+      bookmakers: '',
+    });
+  };
+
+  const filterItems = (items, searchTerm) =>
+    items.filter((item) =>
+      item.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  const filteredLeagues = useMemo(() => 
+  filterItems(availableLeagues, searchTerms.leagues), 
+  [availableLeagues, searchTerms.leagues]
+);
+const filteredBookmakers = useMemo(() => 
+  filterItems(availableBookmakers, searchTerms.bookmakers),
+  [availableBookmakers, searchTerms.bookmakers]
+);
 
   // Collapsed Sidebar - CHANGED vertical text to "Filters"
-  if (!isOpen && !isMobile) {
-    return (
-      <CollapsedSidebar>
-        <ToggleButton onClick={onToggle}>
-          <ChevronRight />
-        </ToggleButton>
-        <CollapsedText>Filters</CollapsedText>
-      </CollapsedSidebar>
-    );
-  }
+  // if (!isOpen && !isMobile) {
+  //   return (
+  //     <CollapsedSidebar>
+  //       <ToggleButton onClick={onToggle}>
+  //         <ChevronRight />
+  //       </ToggleButton>
+  //       <CollapsedText>Filters</CollapsedText>
+  //     </CollapsedSidebar>
+  //   );
+  // }
 
   // Mobile Drawer
   if (isMobile) {
     return (
       <>
-        <MobileToggleButton onClick={onToggle}>
-          <FilterList />
-        </MobileToggleButton>
+        {!isOpen && (
+  <MobileToggleButton onClick={onToggle}>
+    <FilterList />
+  </MobileToggleButton>
+)}
+
         <Drawer
           anchor="left"
           open={isOpen}
@@ -785,19 +820,70 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
             },
           }}
         >
-          <SidebarContent />
+          <SidebarContent 
+  isMobile={isMobile}
+  onToggle={onToggle}
+  isOpen={isOpen}
+  stats={stats}
+  filters={filters}
+  expandedSections={expandedSections}
+  toggleSection={toggleSection}
+  searchTerms={searchTerms}
+  setSearchTerms={setSearchTerms}
+  filteredOpportunities={filteredOpportunities}
+  handleClearAll={handleClearAll}
+  availableLeagues={availableLeagues}
+  handleSelectAll={handleSelectAll}
+  filteredLeagues={filteredLeagues}
+  handleLeagueChange={handleLeagueChange}
+  availableBookmakers={availableBookmakers}
+  filteredBookmakers={filteredBookmakers}
+  handleBookmakerChange={handleBookmakerChange}
+  handleProfitChange={handleProfitChange}
+/>
+
         </Drawer>
       </>
     );
   }
 
   // Desktop Sidebar
-  return (
-    <SidebarContainer isOpen={isOpen}>
-      <SidebarContent />
-    </SidebarContainer>
-  );
+  // Desktop Sidebar
+return (
+  <SidebarContainer isOpen={isOpen}>
+    {isOpen ? (
+      <SidebarContent 
+        isMobile={isMobile}
+        onToggle={onToggle}
+        isOpen={isOpen}
+        stats={stats}
+        filters={filters}
+        expandedSections={expandedSections}
+        toggleSection={toggleSection}
+        searchTerms={searchTerms}
+        setSearchTerms={setSearchTerms}
+        filteredOpportunities={filteredOpportunities}
+        handleClearAll={handleClearAll}
+        availableLeagues={availableLeagues}
+        handleSelectAll={handleSelectAll}
+        filteredLeagues={filteredLeagues}
+        handleLeagueChange={handleLeagueChange}
+        availableBookmakers={availableBookmakers}
+        filteredBookmakers={filteredBookmakers}
+        handleBookmakerChange={handleBookmakerChange}
+        handleProfitChange={handleProfitChange}
+      />
+    ) : (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', height: '100%', paddingY: 2 }}>
+        <ToggleButton onClick={onToggle}>
+          <ChevronRight />
+        </ToggleButton>
+        <CollapsedText>Filters</CollapsedText>
+      </Box>
+    )}
+  </SidebarContainer>
+);
+
 };
 
 export default FilterSidebar;
-
