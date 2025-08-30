@@ -1,28 +1,35 @@
-import React, { useState } from 'react';
-import { TableRow, TableCell, Typography, Box, Chip, Card, CardContent, useTheme, useMediaQuery, Tooltip, Fade,
+import React from 'react';
+import {
+  TableRow,
+  TableCell,
+  Typography,
+  Box,
+  Chip,
+  Card,
+  CardContent,
+  useTheme,
+  Tooltip,
+  Fade,
+  Paper,
 } from '@mui/material';
-import {Timer,TrendingUp,AccountBalance,AttachMoney,SportsSoccer,Schedule,
+import {
+  Timer,
+  AccountBalance,
+  AttachMoney,
+  SportsSoccer,
+  Schedule,
 } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
 import { formatDistanceToNow } from 'date-fns';
 
-// Animations (keeping existing)
-const slideInFromLeft = keyframes`
-  from { transform: translateX(-10px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-`;
-
+// Animations
 const profitGlow = keyframes`
   0%, 100% { box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); }
   50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); }
 `;
 
-const shimmer = keyframes`
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
-`;
+// --- MISSING STYLED COMPONENTS (NOW ADDED) ---
 
-// Styled Components (keeping existing styles but fixing syntax)
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   cursor: 'pointer',
@@ -45,10 +52,168 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
+const MatchInfoCell = styled(TableCell)(({ theme }) => ({
+  minWidth: 220,
+}));
+
+const MatchTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  color: theme.palette.text.primary,
+}));
+
+const MatchSubtitle = styled(Typography)(({ theme }) => ({
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+  marginTop: theme.spacing(0.5),
+}));
+
+const ProfitCell = styled(TableCell)(({ theme }) => ({
+  minWidth: 120,
+  textAlign: 'right',
+}));
+
+const ProfitContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+}));
+
+const ProfitPercentage = styled(Typography)(({ theme }) => ({
+  fontWeight: 800,
+  fontSize: '1.1rem',
+  background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+  backgroundClip: 'text',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+}));
+
+const ProfitAmount = styled(Typography)(({ theme }) => ({
+  fontSize: '0.7rem',
+  color: theme.palette.text.secondary,
+  display: 'flex',
+  alignItems: 'center',
+  '& .MuiSvgIcon-root': {
+    fontSize: '0.8rem',
+    marginRight: theme.spacing(0.2),
+  },
+}));
+
+const BetsCell = styled(TableCell)(({ theme }) => ({
+  minWidth: 300,
+}));
+
+const BetsContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1),
+}));
+
+const BetCard = styled(Paper)(({ theme }) => ({
+  background: `linear-gradient(135deg, ${theme.palette.background.default}, ${theme.palette.background.paper})`,
+  border: `1px solid ${theme.palette.divider}30`,
+  borderRadius: 8,
+  transition: 'all 0.3s ease',
+}));
+
+const BetCardContent = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(1, 1.5),
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+}));
+
+const BetLeft = styled(Box)({});
+
+const OutcomeName = styled(Typography)(({ theme }) => ({
+  fontSize: '0.85rem',
+  fontWeight: 600,
+  color: theme.palette.text.primary,
+}));
+
+const BookmakerName = styled(Typography)(({ theme }) => ({
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+}));
+
+const BetRight = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+});
+
+const OddsChip = styled(Chip)(({ theme }) => ({
+  fontWeight: 700,
+  background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}10)`,
+  color: theme.palette.primary.main,
+  border: `1px solid ${theme.palette.primary.main}25`,
+}));
+
+const StakeChip = styled(Chip)(({ theme }) => ({
+  fontWeight: 600,
+  background: `linear-gradient(135deg, ${theme.palette.secondary.main}15, ${theme.palette.primary.main}10)`,
+  color: theme.palette.secondary.dark,
+  border: `1px solid ${theme.palette.secondary.main}25`,
+}));
+
+const TimeCell = styled(TableCell)({});
+
+const TimeDisplay = styled(Box)({});
+
+const TimeText = styled(Typography)(({ theme }) => ({
+  fontSize: '0.85rem',
+  color: theme.palette.text.primary,
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+}));
+
+const RelativeTimeText = styled(Typography)(({ theme }) => ({
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(0.5),
+}));
+
+// Mobile Specific
+const MobileContainer = styled(Box)({});
+const MobileHeader = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  marginBottom: theme.spacing(2),
+}));
+const MobileMatchInfo = styled(Box)({});
+const MobileProfitDisplay = styled(Box)({});
+const MobileBetsSection = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1),
+  marginBottom: theme.spacing(2),
+}));
+const MobileBetCard = styled(Card)(({ theme }) => ({
+  background: `linear-gradient(135deg, ${theme.palette.background.default}, ${theme.palette.background.paper})`,
+  border: `1px solid ${theme.palette.divider}30`,
+}));
+const MobileTimeSection = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginTop: theme.spacing(2),
+  paddingTop: theme.spacing(1),
+  borderTop: `1px solid ${theme.palette.divider}`,
+}));
+
+// --- END OF ADDED COMPONENTS ---
+
 const OpportunityRow = ({ opportunity, mobile = false }) => {
-  const theme = useTheme();
-
-
   // Safety checks for opportunity data
   if (!opportunity) return null;
 
@@ -80,7 +245,7 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
   const renderBets = () => (
     <BetsContainer>
       {(opportunity.bets_to_place || []).map((bet, index) => (
-        <BetCard key={`${bet.bookmaker_title}-${bet.outcome_name}-${index}`} className="bet-card">
+        <BetCard key={`${bet.bookmaker_title}-${bet.outcome_name}-${index}`} className="bet-card" elevation={0}>
           <BetCardContent>
             <BetLeft>
               <OutcomeName>{bet.outcome_name || 'Unknown Outcome'}</OutcomeName>
@@ -91,7 +256,7 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
             </BetLeft>
             <BetRight>
               <OddsChip label={bet.odds || 'N/A'} size="small" />
-              <StakeChip 
+              <StakeChip
                 label={`$${(bet.wager_amount || 0).toFixed(2)}`}
                 size="small"
               />
@@ -103,73 +268,72 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
   );
 
   // Mobile Layout
-  if (mobile ) {
+  if (mobile) {
     return (
-          <MobileContainer>
-            <MobileHeader>
-              <MobileMatchInfo>
-                <MatchTitle>
-                  <SportsSoccer />
-                  {opportunity.home_team || 'TBD'} vs {opportunity.away_team || 'TBD'}
-                </MatchTitle>
-                <MatchSubtitle>{opportunity.sport_title || 'Unknown Sport'}</MatchSubtitle>
-              </MobileMatchInfo>
-              <MobileProfitDisplay>
-                <ProfitContainer>
-                  <ProfitPercentage>
-                    {(opportunity.profit_percentage || 0).toFixed(2)}%
-                  </ProfitPercentage>
-                  <ProfitAmount>
-                    <AttachMoney fontSize="small" />
-                    ${(opportunity.profit_percentage || 0).toFixed(2)}/100
-                  </ProfitAmount>
-                </ProfitContainer>
-              </MobileProfitDisplay>
-            </MobileHeader>
+      <MobileContainer>
+        <MobileHeader>
+          <MobileMatchInfo>
+            <MatchTitle>
+              <SportsSoccer />
+              {opportunity.home_team || 'TBD'} vs {opportunity.away_team || 'TBD'}
+            </MatchTitle>
+            <MatchSubtitle>{opportunity.sport_title || 'Unknown Sport'}</MatchSubtitle>
+          </MobileMatchInfo>
+          <MobileProfitDisplay>
+            <ProfitContainer>
+              <ProfitPercentage>
+                {(opportunity.profit_percentage || 0).toFixed(2)}%
+              </ProfitPercentage>
+              <ProfitAmount>
+                <AttachMoney fontSize="small" />
+                ${(opportunity.profit_percentage || 0).toFixed(2)}/100
+              </ProfitAmount>
+            </ProfitContainer>
+          </MobileProfitDisplay>
+        </MobileHeader>
 
-            <MobileBetsSection>
-              {(opportunity.bets_to_place || []).map((bet, index) => (
-                <MobileBetCard key={`mobile-${bet.bookmaker_title}-${bet.outcome_name}-${index}`}>
-                  <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Box>
-                        <OutcomeName>{bet.outcome_name || 'Unknown'}</OutcomeName>
-                        <BookmakerName>
-                          <AccountBalance fontSize="small" />
-                          {bet.bookmaker_title || 'Unknown'}
-                        </BookmakerName>
-                      </Box>
-                      <Box display="flex" flexDirection="column" gap={0.5}>
-                        <OddsChip label={bet.odds || 'N/A'} size="small" />
-                        <StakeChip 
-                          label={`$${(bet.wager_amount || 0).toFixed(2)}`}
-                          size="small"
-                        />
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </MobileBetCard>
-              ))}
-            </MobileBetsSection>
+        <MobileBetsSection>
+          {(opportunity.bets_to_place || []).map((bet, index) => (
+            <MobileBetCard key={`mobile-${bet.bookmaker_title}-${bet.outcome_name}-${index}`} elevation={0}>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <OutcomeName>{bet.outcome_name || 'Unknown'}</OutcomeName>
+                    <BookmakerName>
+                      <AccountBalance fontSize="small" />
+                      {bet.bookmaker_title || 'Unknown'}
+                    </BookmakerName>
+                  </Box>
+                  <Box display="flex" flexDirection="column" gap={0.5}>
+                    <OddsChip label={bet.odds || 'N/A'} size="small" />
+                    <StakeChip
+                      label={`$${(bet.wager_amount || 0).toFixed(2)}`}
+                      size="small"
+                    />
+                  </Box>
+                </Box>
+              </CardContent>
+            </MobileBetCard>
+          ))}
+        </MobileBetsSection>
 
-            <MobileTimeSection>
-              <TimeText>
-                <Schedule fontSize="small" />
-                {formatTime(opportunity.commence_time)}
-              </TimeText>
-              <RelativeTimeText>
-                <Timer fontSize="small" />
-                {formatRelativeTime(opportunity.last_updated)}
-              </RelativeTimeText>
-            </MobileTimeSection>
-          </MobileContainer>
+        <MobileTimeSection>
+          <TimeText>
+            <Schedule fontSize="small" />
+            {formatTime(opportunity.commence_time)}
+          </TimeText>
+          <RelativeTimeText>
+            <Timer fontSize="small" />
+            {formatRelativeTime(opportunity.last_updated)}
+          </RelativeTimeText>
+        </MobileTimeSection>
+      </MobileContainer>
     );
   }
 
   // Desktop Table Row
   return (
     <StyledTableRow>
-
       <MatchInfoCell>
         <MatchTitle>
           <SportsSoccer />
@@ -211,3 +375,4 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
 };
 
 export default OpportunityRow;
+
