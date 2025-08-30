@@ -29,7 +29,7 @@ const TableContainer = styled(Box)(({ theme }) => ({
 }));
 
 function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   useOpportunities();
 
   const toggleSidebar = () => {
@@ -56,5 +56,6 @@ function App() {
     </AppContainer>
   );
 }
+
 
 export default App;
