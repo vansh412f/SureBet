@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const { runArbitrageCheck } = require('./services/arbitrageProcessor');
 const cron = require('node-cron');
+const Opportunity = require('./models/Opportunity');
 
 dotenv.config();
 connectDB();
@@ -25,8 +26,24 @@ const io = new Server(httpServer, {
   }
 });
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => { 
   console.log('A user connected via WebSocket:', socket.id);
+  
+  try {
+    const allOpportunities = await Opportunity.find({});
+    socket.emit('new_opportunities', {
+      opportunities: allOpportunities,
+      stats: {
+        matchesScanned: 0, 
+        lastUpdated: new Date(),
+        nextRunTimestamp: null, 
+      }
+    });
+
+    console.log(`Sent initial data load of ${allOpportunities.length} opportunities to ${socket.id}`);
+  } catch (error) {
+    console.error('Failed to send initial data to new user:', error);
+  }
 });
 
 const PORT = process.env.PORT || 5000;
