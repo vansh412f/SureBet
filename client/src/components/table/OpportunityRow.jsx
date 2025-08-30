@@ -58,7 +58,7 @@ const MatchInfoCell = styled(TableCell)(({ theme }) => ({
 
 const MatchTitle = styled(Typography)(({ theme }) => ({
   fontWeight: 600,
-  fontSize: '0.9rem',
+  fontSize: '0.6rem',
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1),
@@ -66,13 +66,13 @@ const MatchTitle = styled(Typography)(({ theme }) => ({
 }));
 
 const MatchSubtitle = styled(Typography)(({ theme }) => ({
-  fontSize: '0.75rem',
+  fontSize: '0.55rem',
   color: theme.palette.text.secondary,
   marginTop: theme.spacing(0.5),
 }));
 
 const ProfitCell = styled(TableCell)(({ theme }) => ({
-  minWidth: 120,
+  minWidth: 100,
   textAlign: 'right',
 }));
 
@@ -83,8 +83,8 @@ const ProfitContainer = styled(Box)(({ theme }) => ({
 }));
 
 const ProfitPercentage = styled(Typography)(({ theme }) => ({
-  fontWeight: 800,
-  fontSize: '1.1rem',
+  fontWeight: 700,
+  fontSize: '0.85rem',
   background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
   backgroundClip: 'text',
   WebkitBackgroundClip: 'text',
@@ -92,18 +92,18 @@ const ProfitPercentage = styled(Typography)(({ theme }) => ({
 }));
 
 const ProfitAmount = styled(Typography)(({ theme }) => ({
-  fontSize: '0.7rem',
+  fontSize: '0.6rem',
   color: theme.palette.text.secondary,
   display: 'flex',
   alignItems: 'center',
   '& .MuiSvgIcon-root': {
-    fontSize: '0.8rem',
+    fontSize: '0.6rem',
     marginRight: theme.spacing(0.2),
   },
 }));
 
 const BetsCell = styled(TableCell)(({ theme }) => ({
-  minWidth: 300,
+  minWidth: 200,
 }));
 
 const BetsContainer = styled(Box)(({ theme }) => ({
@@ -120,7 +120,7 @@ const BetCard = styled(Paper)(({ theme }) => ({
 }));
 
 const BetCardContent = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(1, 1.5),
+  padding: theme.spacing(1, 1.1),
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -129,13 +129,13 @@ const BetCardContent = styled(Box)(({ theme }) => ({
 const BetLeft = styled(Box)({});
 
 const OutcomeName = styled(Typography)(({ theme }) => ({
-  fontSize: '0.85rem',
+  fontSize: '0.6rem',
   fontWeight: 600,
   color: theme.palette.text.primary,
 }));
 
 const BookmakerName = styled(Typography)(({ theme }) => ({
-  fontSize: '0.75rem',
+  fontSize: '0.6rem',
   color: theme.palette.text.secondary,
   display: 'flex',
   alignItems: 'center',
@@ -167,15 +167,15 @@ const TimeCell = styled(TableCell)({});
 const TimeDisplay = styled(Box)({});
 
 const TimeText = styled(Typography)(({ theme }) => ({
-  fontSize: '0.85rem',
+  fontSize: '0.7rem',
   color: theme.palette.text.primary,
   display: 'flex',
   alignItems: 'center',
-  gap: theme.spacing(0.5),
+  gap: theme.spacing(0.2),
 }));
 
 const RelativeTimeText = styled(Typography)(({ theme }) => ({
-  fontSize: '0.75rem',
+  fontSize: '0.6rem',
   color: theme.palette.text.secondary,
   display: 'flex',
   alignItems: 'center',
