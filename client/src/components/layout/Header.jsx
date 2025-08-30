@@ -285,8 +285,17 @@ const Header = () => {
   };
   const nextScanTime = stats?.nextRunTimestamp;
   const isNextScanInFuture = nextScanTime && new Date(nextScanTime) > new Date();
-  
-  const countdown = useCountdown(isNextScanInFuture ? nextScanTime : null);
+  const [nextHourTimestamp] = React.useState(() => {
+    const now = new Date();
+    const nextHour = new Date(now);
+    nextHour.setHours(now.getHours() + 1);
+    nextHour.setMinutes(30);
+    nextHour.setSeconds(0);
+    nextHour.setMilliseconds(0);
+
+    return nextHour.getTime();
+});
+  const countdown = useCountdown(nextHourTimestamp);
   const lastScanLabel = stats?.lastUpdated
     ? new Date(stats.lastUpdated).toLocaleTimeString([], { 
         hour: '2-digit', 
@@ -377,7 +386,7 @@ console.log("Current Header State:", { viewMode, apiStatus, stats, isConnected }
               <StatusContainer>
                 <StatusInfo>
                   <StatusText>Last Scan:&nbsp;&nbsp;{lastScanLabel}</StatusText>
-                  <StatusText>Next Scan:&nbsp;&nbsp;{isNextScanInFuture ? countdown : '...'}</StatusText>
+                  <StatusText>Next Scan:&nbsp;&nbsp;{countdown}</StatusText>
                 </StatusInfo>
                 
                 <Tooltip
