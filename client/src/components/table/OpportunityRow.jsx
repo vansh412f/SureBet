@@ -255,7 +255,7 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
               </BookmakerName>
             </BetLeft>
             <BetRight>
-              <OddsChip label={bet.price || 'N/A'} size="small" />
+              <OddsChip label={bet.outcome_price || 'N/A'} size="small" />
               <StakeChip
                 label={`$${(bet.wager_amount || 0).toFixed(2)}`}
                 size="small"
@@ -305,7 +305,7 @@ const OpportunityRow = ({ opportunity, mobile = false }) => {
                     </BookmakerName>
                   </Box>
                   <Box display="flex" flexDirection="column" gap={0.5}>
-                    <OddsChip label={bet.price || 'N/A'} size="small" />
+                    <OddsChip label={bet.outcome_price || 'N/A'} size="small" />
                     <StakeChip
                       label={`$${(bet.wager_amount || 0).toFixed(2)}`}
                       size="small"
