@@ -44,7 +44,7 @@ const LogoContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(1.5),
-  padding: theme.spacing(1, 2),
+  padding: theme.spacing(1, 1.5),
   background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}10)`,
   border: `2px solid ${theme.palette.primary.main}20`,
   borderRadius: '16px',
@@ -74,7 +74,7 @@ const LogoContainer = styled(Box)(({ theme }) => ({
 }));
 
 const LogoIcon = styled(TrendingUp)(({ theme }) => ({
-  fontSize: '28px',
+  fontSize: '20px',
   color: theme.palette.primary.main,
   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
 }));
@@ -82,13 +82,16 @@ const LogoIcon = styled(TrendingUp)(({ theme }) => ({
 const LogoText = styled(Typography)(({ theme }) => ({
   fontFamily: '"Inter", "Segoe UI", sans-serif',
   fontWeight: 700,
-  fontSize: '1.4rem',
+  fontSize: '1.2rem',
   letterSpacing: '-0.02em',
   background: `linear-gradient(135deg, ${theme.palette.text.primary}, ${theme.palette.primary.main})`,
   backgroundClip: 'text',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
   lineHeight: 1,
+  [theme.breakpoints.down('sm')]: {
+    display: 'none',
+  },
 }));
 
 const ViewSwitcher = styled(ButtonGroup)(({ theme }) => ({
@@ -101,9 +104,9 @@ const ViewSwitcher = styled(ButtonGroup)(({ theme }) => ({
   
   '& .MuiButton-root': {
     textTransform: 'none',
-    fontWeight: 600,
-    fontSize: '0.9rem',
-    padding: theme.spacing(1, 2.5),
+    fontWeight: 1000,
+    fontSize: '0.7rem',
+    padding: theme.spacing(1, 2),
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     position: 'relative',
     [theme.breakpoints.down('sm')]: {
@@ -131,14 +134,12 @@ const ViewSwitcher = styled(ButtonGroup)(({ theme }) => ({
 const StatusContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: theme.spacing(2),
+  gap: theme.spacing(1),
+  position: 'relative',
   [theme.breakpoints.down('md')]: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     gap: theme.spacing(1),
     alignItems: 'flex-end',
-  },
-  [theme.breakpoints.down('sm')]: {
-    display: 'none',
   },
 }));
 
@@ -148,26 +149,29 @@ const StatusInfo = styled(Box)(({ theme }) => ({
   alignItems: 'flex-start',
   gap: theme.spacing(0.2),
   animation: `${fadeInUp} 0.6s ease-out`,
-  minWidth: '140px',
   [theme.breakpoints.down('md')]: {
-    alignItems: 'center',
+    position: 'static',
+    top: 'unset',
+    left: 'unset',
+    alignItems: 'flex-start',
+    textAlign: 'left',
   },
 }));
 
 const StatusText = styled(Typography)(({ theme }) => ({
-  fontSize: '0.75rem',
-  fontWeight: 500,
+  fontSize: '0.65rem',
+  fontWeight: 600,
   color: theme.palette.text.secondary,
-  lineHeight: 1.2,
+  lineHeight: 1.1,
   fontFamily: '"JetBrains Mono", "Consolas", monospace',
-  letterSpacing: '0.02em',
+  letterSpacing: '0.01em',
 }));
 
 const LiveIndicator = styled(Box)(({ theme, isconnected, apistatus }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(0.8),
-  padding: theme.spacing(0.6, 1.2),
+  padding: theme.spacing(0.6, 1),
   background: 
     apistatus === 'limit_reached' 
       ? `linear-gradient(135deg, ${theme.palette.warning.main}15, ${theme.palette.warning.light}10)`
@@ -214,15 +218,18 @@ const StatusDot = styled(FiberManualRecordRounded)(({ theme, isconnected, apista
 }));
 
 const StatusLabel = styled(Typography)(({ theme, isconnected, apistatus }) => ({
-  fontSize: '0.8rem',
+  fontSize: '0.7rem',
   fontWeight: 600,
-  color: 
-    apistatus === 'limit_reached' 
+  color:
+    apistatus === 'limit_reached'
       ? theme.palette.warning.main
-      : isconnected 
-        ? theme.palette.success.main 
-        : theme.palette.error.main,
+      : isconnected
+      ? theme.palette.success.main
+      : theme.palette.error.main,
   letterSpacing: '0.02em',
+  [theme.breakpoints.down('md')]: {
+    display: 'none',
+  },
 }));
 
 const InfoButton = styled(IconButton)(({ theme }) => ({
@@ -232,17 +239,15 @@ const InfoButton = styled(IconButton)(({ theme }) => ({
   width: 44,
   height: 44,
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  [theme.breakpoints.down('sm')]: {
-    width: 40,
-    height: 40,
+  [theme.breakpoints.down('md')]: {
+    display: 'none',
   },
-  
   '&:hover': {
     background: theme.palette.primary.main,
     color: '#fff',
     transform: 'translateY(-2px) rotate(5deg)',
     boxShadow: `0 8px 20px ${theme.palette.primary.main}30`,
-  }
+  },
 }));
 
 // Mobile View Switcher
@@ -257,10 +262,7 @@ const MobileViewSwitcher = styled(Box)(({ theme }) => ({
   [theme.breakpoints.down('sm')]: {
     position: 'static',
     transform: 'none',
-    order: 2,
-    width: '100%',
     justifyContent: 'center',
-    marginTop: theme.spacing(1),
   },
 }));
 
@@ -292,7 +294,7 @@ const Header = () => {
         second: '2-digit'
       })
     : '—';
-
+console.log("Current Header State:", { viewMode, apiStatus, stats, isConnected });
   return (
     <Fade in timeout={800}>
       <StyledAppBar position="fixed" elevation={0}>
@@ -305,15 +307,14 @@ const Header = () => {
             md: theme.spacing(0, 3) 
           }),
           position: 'relative',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'stretch', sm: 'center' },
+          flexDirection: 'row' ,
+          alignItems:  'center' ,
           gap: { xs: 1, sm: 0 }
         }}>
           {/* Logo */}
           <Slide in timeout={600} direction="right">
             <LogoContainer sx={{ 
-              order: { xs: 1, sm: 0 },
-              alignSelf: { xs: 'flex-start', sm: 'center' }
+              alignSelf: 'center' 
             }}>
               <LogoIcon className="logo-icon" />
               <LogoText variant="h6" component="div">
@@ -369,8 +370,7 @@ const Header = () => {
               display: 'flex', 
               alignItems: 'center', 
               gap: 2,
-              order: { xs: 3, sm: 0 },
-              alignSelf: { xs: 'flex-end', sm: 'center' },
+              alignSelf: 'center' ,
               width: { xs: 'auto', sm: 'auto' }
             }}>
               {/* Status Info */}
