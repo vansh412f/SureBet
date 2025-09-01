@@ -1,233 +1,104 @@
-# SureBet Hub - Sports Arbitrage Tracking Application
+SureBet - Live Sports Arbitrage Finder
+SureBet is a sophisticated, real-time web application designed to automatically scan, calculate, and display sports arbitrage opportunities from multiple international bookmakers. This MERN stack project leverages a resilient backend engine and a dynamic, fully responsive React frontend to provide users with actionable, risk-free betting insights.
 
-A modern, real-time React application for tracking sports arbitrage opportunities with advanced filtering and sorting capabilities.
+Live Demo: https://sure-bet-hazel.vercel.app/
 
-## 🚀 Features
+📖 The Story Behind SureBet
+While exploring the world of sports betting, I discovered arbitrage betting—a 100% legal, mathematical approach to guarantee a profit by exploiting odds discrepancies across different bookmakers. I was fascinated by the concept but found that every existing tool or service charged a significant fee to access this information.
 
-- **Real-time Data**: Live WebSocket connection to backend for instant updates
-- **Advanced Filtering**: Multi-level filtering by sport, league, bookmaker, and profit percentage
-- **Dynamic Sports Bar**: Auto-generated sport categories with opportunity counts
-- **Responsive Design**: Modern dark theme inspired by oddsjam.com
-- **Sophisticated Table**: Sortable columns, pagination, and detailed opportunity information
-- **Professional UI**: Built with Material-UI components and custom styling
+This project was born out of a challenge: could I build a professional-grade tool to provide this service for free? I wanted to see if I could engineer a complete, end-to-end system that could handle the complexities of real-time data ingestion, resiliently manage a large pool of resources, and present the findings in a polished, user-friendly interface. SureBet is the result of that challenge.
 
-## 🛠 Tech Stack
+🚀 Key Features
+Real-time Opportunity Updates: A live WebSocket connection pushes new opportunities to the UI instantly.
 
-- **Frontend Framework**: React 18
-- **Build Tool**: Vite
-- **UI Library**: Material-UI (MUI)
-- **Styling**: Styled-Components + Emotion
-- **State Management**: Zustand
-- **Real-time Communication**: Socket.io-client
-- **Icons**: Material-UI Icons
+Live & Historical Views: Toggle between currently active opportunities and a historical archive of past bets.
 
-## 📦 Installation & Setup
+Advanced Filtering & Sorting: A collapsible sidebar with multi-level filtering by sport, league, bookmaker, and profit percentage.
 
-### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
-- Backend server running on port 5000
+Dynamic UI: The interface dynamically generates filter options based on the available data for a clean and relevant user experience.
 
-### Quick Start
+Resilient Backend Engine:
 
-```bash
-# Create the project
-npm create vite@latest client -- --template react
+API Key Rotator: Automatically manages a pool of hundreds of API keys, rotating to a new key when a usage limit is reached.
+
+Credit Safety Brake: A self-regulating mechanism that stops data fetching before an API key's credit limit is exceeded, guaranteeing no single run ever fails.
+
+24/7 Scheduled Jobs: Uses node-cron to run the data-scanning process automatically in the background.
+
+Fully Responsive Design: A professional and intuitive layout that works flawlessly on desktop, tablet, and mobile devices.
+
+🛠 Tech Stack
+This project is a full-stack MERN application, architected with modern, professional tools.
+
+Frontend: React, Vite, Material-UI (MUI), Zustand, socket.io-client, Framer Motion, Styled-Components
+
+Backend: Node.js, Express.js, Mongoose
+
+Database: MongoDB Atlas
+
+Real-time Communication: Socket.IO
+
+Deployment: Frontend on Vercel, Backend on Render
+
+📦 Installation & Setup
+Prerequisites
+Node.js (v18 or higher)
+
+npm
+
+A MongoDB Atlas account and a connection string.
+
+At least one API key from The Odds API.
+
+Setup Instructions
+Clone the Repository:
+
+Bash
+
+git clone https://github.com/your-username/SureBet.git
+cd SureBet
+Backend Setup:
+
+Bash
+
+cd server
+npm install
+Create a .env file in the /server directory and add your variables:
+
+Code snippet
+
+MONGO_URI=your_mongodb_connection_string
+ODDS_API_KEY=your_api_key1,your_api_key2,...
+FRONTEND_URL=http://localhost:3000
+Frontend Setup:
+
+Bash
+
 cd client
+npm install
+Create a .env file in the /client directory and add your backend URL:
 
-# Install dependencies
-npm install @mui/material @emotion/react @emotion/styled
-npm install @mui/icons-material
-npm install styled-components
-npm install zustand
-npm install socket.io-client
+Code snippet
 
-# Start development server
-npm run dev
-```
-
-### Project Structure
-
-```
-client/src/
-├── api/
-│   └── socket.js              # WebSocket configuration
-├── components/
-│   ├── filters/
-│   │   ├── FilterSidebar.js   # Advanced filtering panel
-│   │   └── SportFilterBar.js  # Dynamic sports filter
-│   ├── layout/
-│   │   └── Header.js          # Application header
-│   └── table/
-│       ├── OpportunityTable.js # Main data table
-│       └── OpportunityRow.js   # Individual opportunity display
-├── hooks/
-│   └── useOpportunities.js    # WebSocket connection hook
-├── store/
-│   └── opportunityStore.js    # Zustand global state
-├── styles/
-│   └── theme.js              # MUI custom theme
-├── App.js                    # Main application component
-└── main.jsx                  # Entry point
-```
-
-## 🎨 Design System
-
-### Color Palette
-- **Background**: Very dark grey (`#1A202C`)
-- **Content Background**: Slightly lighter dark grey (`#2D3748`)
-- **Primary Text**: Light grey (`#E2E8F0`)
-- **Accent/Profit**: Bright green (`#48BB78`)
-- **Interactive Elements**: Bright blue (`#4299E1`)
-
-### Key Components
-
-#### Header
-- Live connection status
-- Opportunity count
-- Settings and refresh actions
-
-#### Sport Filter Bar
-- Dynamic sport categories
-- Opportunity count per sport
-- Active filter indicators
-
-#### Filter Sidebar
-- Collapsible sections
-- Search functionality for leagues/bookmakers
-- Profit percentage slider
-- Quick filter buttons
-
-#### Opportunity Table
-- Sortable columns
-- Pagination (50 rows per page)
-- Hover effects
-- Favorite functionality
-- Color-coded profit percentages
-
-## 🔌 Backend Integration
-
-The application expects a WebSocket server running on `http://localhost:5000` with the following events:
-
-### Incoming Events
-- `new_opportunities`: Array of opportunity objects
-- `opportunity_update`: Single updated opportunity
-- `opportunity_removed`: ID of removed opportunity
-
-### Outgoing Events  
-- `request_opportunities`: Request initial data
-
-### Expected Data Format
-
-```javascript
-{
-  id: "unique_id",
-  sport: "Soccer",
-  league: "Premier League", 
-  match: "Team A vs Team B",
-  bookmaker1: {
-    "Bookmaker Name": {
-      odds: "2.10",
-      market: "1X2"
-    }
-  },
-  bookmaker2: {
-    "Another Bookmaker": {
-      odds: "1.95", 
-      market: "1X2"
-    }
-  },
-  profit: 5.25,
-  stakes: {
-    stake1: 100,
-    stake2: 107.69,
-    totalReturn: 210
-  },
-  lastUpdated: "2024-01-15T10:30:00Z"
-}
-```
-
-## 🚀 Development
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run linting
-npm run lint
-```
-
-## 🔧 Configuration
-
-### Vite Configuration
-- Proxy setup for WebSocket connections
-- Optimized chunk splitting
-- Source maps for debugging
-
-### Environment Variables
-Create a `.env` file for configuration:
-
-```env
 VITE_WEBSOCKET_URL=http://localhost:5000
-VITE_APP_TITLE=SureBet Hub
-```
+Running the Application
+You will need two terminals to run the full application.
 
-## 📱 Responsive Design
+Terminal 1 (Backend):
 
-The application is fully responsive with:
-- Desktop-first design approach
-- Collapsible sidebar for mobile
-- Touch-friendly controls
-- Optimized table scrolling
+Bash
 
-## 🎯 Performance Optimizations
+cd server
+npm run dev
+Terminal 2 (Frontend):
 
-- **Code Splitting**: Vendor chunks separated
-- **Memoization**: React.memo and useMemo for expensive calculations
-- **Virtual Scrolling**: Pagination to handle large datasets
-- **Debounced Search**: Smooth filtering experience
-- **WebSocket Optimization**: Efficient connection management
+Bash
 
-## 🔒 Security Considerations
+cd client
+npm run dev
+Open your browser to http://localhost:3000.
 
-- WebSocket connection with reconnection logic
-- Input validation on all filters
-- XSS protection through React's built-in escaping
-- CORS configuration for production deployment
+⚠️ Disclaimer
+This application is for educational and demonstration purposes only. It is a software engineering project and does not constitute financial advice. I do not promote or endorse gambling. Please be aware of and comply with the online betting regulations in your jurisdiction. Bet responsibly.
 
-## 🚀 Deployment
-
-### Build for Production
-```bash
-npm run build
-```
-
-### Deploy to Netlify/Vercel
-1. Build the project
-2. Deploy the `dist` folder
-3. Configure environment variables
-4. Set up WebSocket proxy if needed
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes with clear messages
-4. Submit a pull request
-
-## 📞 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Check the documentation
-- Review the code comments for implementation details
+Due to the nature of free-tier APIs and regional restrictions on betting sites in countries like India, the bookmakers tracked are primarily international.
