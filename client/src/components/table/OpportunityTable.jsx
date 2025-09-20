@@ -65,7 +65,7 @@ const StyledTableHead = styled(TableHead)(({ theme }) => ({
   backdropFilter: 'blur(20px)',
   '& .MuiTableCell-head': {
     fontWeight: 700,
-    fontSize: '0.9rem',
+    fontSize: '0.6rem',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     position: 'sticky',
@@ -534,7 +534,39 @@ const OpportunityTable = () => {
                   </Box>
                 </StyledTableSortLabel>
               </TableCell>
-              <TableCell>Bets to Place</TableCell>
+              <TableCell>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="inherit" sx={{ fontWeight: 'inherit', fontSize: 'inherit' }}>
+            Bets to Place
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ 
+                py: 0.5, 
+                px: 1.5, 
+                backgroundColor: 'background.default', 
+                borderRadius: 1, 
+                border: 1, 
+                borderColor: 'divider' 
+            }}>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
+                    ODDS
+                </Typography>
+            </Box>
+            <Box sx={{ 
+                py: 0.5, 
+                px: 1.5, 
+                backgroundColor: 'background.default', 
+                borderRadius: 1, 
+                border: 1, 
+                borderColor: 'divider' 
+            }}>
+                <Typography variant="caption" sx={{ color: 'secondary.main', fontWeight: 600 }}>
+                    STAKE
+                </Typography>
+            </Box>
+        </Box>
+    </Box>
+</TableCell>
               <TableCell>
                 <StyledTableSortLabel
                   active={sortField === 'commence_time'}
