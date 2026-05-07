@@ -173,7 +173,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
   const scaledProfit = ((stake * profitPct) / 100).toFixed(2);
   const { date: matchDate, label: matchLabel, status: matchStatus } = formatMatchTime(opportunity.commence_time);
   const sportCat = getSportCat(opportunity);
-  const isEnded = matchStatus === 'ended';
 
   const profitColor =
     profitPct >= 3 ? '#34D399' :
@@ -186,7 +185,7 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
     'text.disabled';
 
   return (
-    <StyledRow isnew={isNew ? 1 : 0} sx={{ opacity: isEnded ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+    <StyledRow isnew={isNew ? 1 : 0}>
 
       {/* ── Match ───────────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 190 }}>
