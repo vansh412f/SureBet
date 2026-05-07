@@ -7,7 +7,7 @@ import {
   ContentCopy, Check, AccountBalance, Schedule, AccessTime,
 } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
-import { formatDistanceToNow, format, isPast } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { getSportCat, formatOdd, scaleWager, getBookmakerUrl } from '../../utils/sportUtils';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
@@ -91,14 +91,37 @@ const StakeInput = styled(TextField)(({ theme }) => ({
 }));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+/**
+ * Returns match date string + a 3-state status object.
+ * Status values:
+ *   'upcoming'    → match hasn't started
+ *   'inprogress'  → started but < 3 hours ago (likely still live)
+ *   'ended'       → started more than 3 hours ago (almost certainly finished)
+ */
+const MATCH_DURATION_MS = 3 * 60 * 60 * 1000; // 3-hour window covers most sports
+
 const formatMatchTime = (ts) => {
-  if (!ts) return { date: 'TBD', relative: '' };
+  if (!ts) return { date: 'TBD', label: '—', status: 'upcoming' };
   const d = new Date(ts);
-  const date = format(d, 'dd MMM, HH:mm');
-  const relative = isPast(d)
-    ? '⚡ Live/Started'
-    : `in ${formatDistanceToNow(d)}`;
-  return { date, relative };
+  const now = Date.now();
+  const diffMs = now - d.getTime(); // positive = past
+
+  let status, label;
+  if (diffMs < 0) {
+    // Future
+    status = 'upcoming';
+    label = `in ${formatDistanceToNow(d)}`;
+  } else if (diffMs < MATCH_DURATION_MS) {
+    // Started but likely still running
+    status = 'inprogress';
+    label = '⚡ In Progress';
+  } else {
+    // Over
+    status = 'ended';
+    label = '✓ Ended';
+  }
+
+  return { date: format(d, 'dd MMM, HH:mm'), label, status };
 };
 
 const formatUpdated = (ts) => {
@@ -147,18 +170,23 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
   if (!opportunity) return null;
 
   const profitPct = opportunity.profit_percentage || 0;
-  const profitDollar = opportunity.total_profit_on_100 ?? profitPct; // same value numerically
   const scaledProfit = ((stake * profitPct) / 100).toFixed(2);
-  const { date: matchDate, relative: matchRelative } = formatMatchTime(opportunity.commence_time);
+  const { date: matchDate, label: matchLabel, status: matchStatus } = formatMatchTime(opportunity.commence_time);
   const sportCat = getSportCat(opportunity);
+  const isEnded = matchStatus === 'ended';
 
   const profitColor =
     profitPct >= 3 ? '#34D399' :
     profitPct >= 2 ? '#10B981' :
     profitPct >= 1 ? '#6EE7B7' : '#94A3B8';
 
+  const statusColor =
+    matchStatus === 'ended'      ? '#475569' :
+    matchStatus === 'inprogress' ? '#F59E0B' :
+    'text.disabled';
+
   return (
-    <StyledRow isnew={isNew ? 1 : 0}>
+    <StyledRow isnew={isNew ? 1 : 0} sx={{ opacity: isEnded ? 0.5 : 1, transition: 'opacity 0.3s' }}>
 
       {/* ── Match ───────────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 190 }}>
@@ -242,10 +270,10 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
         </Box>
         <Typography sx={{
           fontSize: '0.72rem',
-          color: matchRelative.startsWith('⚡') ? '#F59E0B' : 'text.disabled',
-          fontWeight: matchRelative.startsWith('⚡') ? 700 : 400,
+          color: statusColor,
+          fontWeight: matchStatus !== 'upcoming' ? 700 : 400,
         }}>
-          {matchRelative}
+          {matchLabel}
         </Typography>
       </TableCell>
 
