@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { parseExpression } = require('cron-parser');
 const connectDB = require('./config/db');
 const { runArbitrageCheck } = require('./services/arbitrageProcessor');
 const cron = require('node-cron');
@@ -26,21 +27,31 @@ const io = new Server(httpServer, {
   }
 });
 
-io.on('connection', async (socket) => { 
+// Schedule (shared so both the cron job and the initial run use the same expression)
+const CRON_SCHEDULE = '0 * * * *';
+
+io.on('connection', async (socket) => {
   console.log('A user connected via WebSocket:', socket.id);
-  
+
   try {
     const allOpportunities = await Opportunity.find({});
+
+    // Compute the real next-run timestamp so the client countdown starts immediately
+    let nextRunTimestamp = null;
+    try {
+      nextRunTimestamp = parseExpression(CRON_SCHEDULE).next().toDate();
+    } catch (_) {}
+
     socket.emit('new_opportunities', {
       opportunities: allOpportunities,
       stats: {
-        matchesScanned: 0, 
+        matchesScanned: 0,
         lastUpdated: new Date(),
-        nextRunTimestamp: null, 
+        nextRunTimestamp,
       }
     });
 
-    console.log(`Sent initial data load of ${allOpportunities.length} opportunities to ${socket.id}`);
+    console.log(`Sent ${allOpportunities.length} opportunities to ${socket.id}`);
   } catch (error) {
     console.error('Failed to send initial data to new user:', error);
   }
@@ -56,13 +67,13 @@ httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// schedule the arbitrage check to run every hour
-const CRON_SCHEDULE = '0 * * * *'; 
+// Scheduled arbitrage check — runs every hour on the hour
 cron.schedule(CRON_SCHEDULE, () => {
   console.log('Running scheduled arbitrage check...');
-  runArbitrageCheck(io, CRON_SCHEDULE); 
+  runArbitrageCheck(io, CRON_SCHEDULE);
 });
 
-console.log(`Scheduled arbitrage check to run every hour.`);
-// initial run on server start
+console.log('Scheduled arbitrage check to run every hour.');
+
+// Initial run on server start
 runArbitrageCheck(io, CRON_SCHEDULE);

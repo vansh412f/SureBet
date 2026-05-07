@@ -4,18 +4,31 @@ const Match = require('../models/Match');
 const Opportunity = require('../models/Opportunity');
 const SystemState = require('../models/SystemState');
 
-const TARGET_BOOKMAKERS = ['betfair', 'pinnacle', 'williamhill', 'bet365', 'unibet', '888sport', 'betway', 'coral', 'ladbrokes', 'boylesports',];
+const TARGET_BOOKMAKERS = [
+  'betfair', 'pinnacle', 'williamhill', 'bet365', 'unibet',
+  '888sport', 'betway', 'coral', 'ladbrokes', 'boylesports',
+];
 
-// promise is future result of async function
+// Permanent cap: profit_percentage above this value is a data error, never stored or broadcast.
+const MAX_ARBIT_PROFIT = 60;
+
+// Promise-based delay
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// for keeping track of index of api key used
+// Extracts a clean sport category from the sport_title string.
+// e.g. "Soccer - EPL" -> "Soccer", "Basketball" -> "Basketball"
+function extractSportCategory(sportTitle) {
+  if (!sportTitle) return 'Other';
+  const parts = sportTitle.split(' - ');
+  return parts[0].trim();
+}
+
+// Keeps track of which API key is currently in use (persisted to MongoDB)
 async function readCurrentKeyIndex() {
   const doc = await SystemState.findOne({ key: 'api_state' });
   return doc?.value ?? 0;
 }
 
-// initially writes the api state key as 0 because when read function is performed the data is null, so it sets the value to 0
 async function writeCurrentKeyIndex(newIndex) {
   await SystemState.findOneAndUpdate(
     { key: 'api_state' },
@@ -24,15 +37,19 @@ async function writeCurrentKeyIndex(newIndex) {
   );
 }
 
-const runArbitrageCheck = async (io) => {
-  console.log('Starting initial arbitrage check .....');
+// Main arbitrage scanning function.
+// @param {SocketIO.Server} io - Socket.IO server instance for live status updates
+// @param {string} cronSchedule  - The cron string used to schedule this job (used to calc next run time)
+const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
+  console.log('Starting arbitrage check...');
 
-  // safety for api usage limit reached
   const MATCH_SCAN_LIMIT = 250;
+  const CREDIT_SAFETY_LIMIT = parseInt(process.env.CREDIT_SAFETY_LIMIT, 10) || 450;
   let matchesProcessedThisRun = 0;
   const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  let requestsRemaining = Infinity; // updated from API response headers
 
-  // loads the api keys 
+  // Load API keys
   const apiKeys = process.env.ODDS_API_KEY?.split(',').map((s) => s.trim()).filter(Boolean) || [];
   if (apiKeys.length === 0) {
     console.error('No API keys found.');
@@ -42,97 +59,114 @@ const runArbitrageCheck = async (io) => {
 
   let currentKeyIndex = await readCurrentKeyIndex();
   if (currentKeyIndex >= apiKeys.length) {
-    currentKeyIndex = 0;                            // if by chance, error occurs, then switch to start, avoiding failure  
+    currentKeyIndex = 0;
     await writeCurrentKeyIndex(0);
   }
 
   let apiKey = apiKeys[currentKeyIndex];
   console.log(`🔑 Using API Key ${currentKeyIndex + 1}/${apiKeys.length}`);
 
+  // ── Fetch active sports ──────────────────────────────────────────────────
   let activeSports = [];
   try {
-    // updates frontend about starting work
-    io?.emit('status_update', { message: 'Waking up the server... Discovering active sports.' });
-    const sportsUrl = `https://api.the-odds-api.com/v4/sports?apiKey=${apiKey}`;   //first check for the ongoing sports in realtime
-    const sportsResponse = await axios.get(sportsUrl);
-    activeSports = sportsResponse.data.filter(
-      (sport) => sport.active === true && sport.has_outrights === false
+    io?.emit('status_update', { message: 'Discovering active sports...' });
+    const sportsRes = await axios.get(
+      `https://api.the-odds-api.com/v4/sports?apiKey=${apiKey}`
     );
-    console.log(`Found ${activeSports.length} active sports.`);
-
-  } catch (e) {                       // this block executes if the api usage has reached while fetching active sports                 
-    console.error('Failed to fetch active sports list. A valid API key is needed to start. Stopping run.', e.message);
+    // Update remaining credits from header
+    if (sportsRes.headers['x-requests-remaining']) {
+      requestsRemaining = parseInt(sportsRes.headers['x-requests-remaining'], 10);
+    }
+    activeSports = sportsRes.data.filter(
+      (s) => s.active === true && s.has_outrights === false
+    );
+    console.log(`Found ${activeSports.length} active sports. Credits remaining: ${requestsRemaining}`);
+  } catch (e) {
+    console.error('Failed to fetch active sports list:', e.message);
     io?.emit('api_error', { message: 'Could not fetch active sports. Please check API keys.' });
+    return;
+  }
+
+  // ── Safety check before scanning ────────────────────────────────────────
+  if (requestsRemaining <= CREDIT_SAFETY_LIMIT) {
+    console.warn(`⚠️ Credit Safety Brake: Only ${requestsRemaining} requests remaining (limit: ${CREDIT_SAFETY_LIMIT}). Stopping.`);
+    io?.emit('api_error', { message: `API credit safety limit reached (${requestsRemaining} remaining). Scan paused.` });
     return;
   }
 
   let totalHistoricalSaved = 0;
   const live_opportunities = [];
 
-  // main loop for fetching odds for matches from each sport
+  // ── Main scanning loop ───────────────────────────────────────────────────
   for (const sport of activeSports) {
     if (matchesProcessedThisRun >= MATCH_SCAN_LIMIT) {
       console.log(`✅ Match scan limit of ${MATCH_SCAN_LIMIT} reached. Ending session.`);
-      break; // main loop stop if number of matches scanned satisfied
+      break;
     }
+
+    // Credit Safety Brake — checked each iteration
+    if (requestsRemaining <= CREDIT_SAFETY_LIMIT) {
+      console.warn(`⚠️ Credit Safety Brake triggered after ${matchesProcessedThisRun} matches. Stopping early.`);
+      io?.emit('status_update', { message: `Credit safety limit reached. Stopping scan early.` });
+      break;
+    }
+
     console.log(`Fetching odds for ${sport.title}...`);
     let matches = [];
+    let fetchSuccessful = false;
 
-    let fetchSuccessful = false;    // for continue retrying fetch if key exhausted
     while (!fetchSuccessful) {
       try {
-        const oddsUrl = `https://api.the-odds-api.com/v4/sports/${sport.key}/odds?apiKey=${apiKey}&regions=uk,eu`;
-        const oddsResponse = await axios.get(oddsUrl);
-        matches = oddsResponse.data;
-        fetchSuccessful = true;  // retry loop stop if number of matches scanned satisfied
+        const oddsRes = await axios.get(
+          `https://api.the-odds-api.com/v4/sports/${sport.key}/odds?apiKey=${apiKey}&regions=uk,eu`
+        );
+        // Update remaining credits from header after every request
+        if (oddsRes.headers['x-requests-remaining']) {
+          requestsRemaining = parseInt(oddsRes.headers['x-requests-remaining'], 10);
+        }
+        matches = oddsRes.data;
+        fetchSuccessful = true;
       } catch (e) {
-
-        //--------------------------------- API Key Rotation Logic -------------------------------
-
+        // ── API Key Rotation ─────────────────────────────────────────────
         if (e.response && (e.response.status === 401 || e.response.status === 429)) {
-          console.error(`API Key ${currentKeyIndex + 1} exhausted for sport: ${sport.title}.`);
+          console.error(`API Key ${currentKeyIndex + 1} exhausted for: ${sport.title}`);
           io?.emit('status_update', { message: `Key ${currentKeyIndex + 1} exhausted, trying next key...` });
 
           currentKeyIndex++;
-
           if (currentKeyIndex >= apiKeys.length) {
-            console.error('❌ All API keys have been exhausted for this session.');
+            console.error('❌ All API keys exhausted for this session.');
             io?.emit('api_error', { message: 'All available API keys have been exhausted.' });
-
-            console.log('♻️ Resetting key index to 0 for the next scheduled run.');
-            await writeCurrentKeyIndex(0);
-            return;     // no rotation here because of infinite loop, so we exit now but next time it will start from 0
+            await writeCurrentKeyIndex(0); // reset for next scheduled run
+            return;
           }
 
           apiKey = apiKeys[currentKeyIndex];
           await writeCurrentKeyIndex(currentKeyIndex);
-          console.log(`➡️ Switched to API Key ${currentKeyIndex + 1}/${apiKeys.length}. Retrying fetch for ${sport.title}...`);
-          await delay(1000);          // small delay before retrying with the new key
+          console.log(`➡️ Switched to API Key ${currentKeyIndex + 1}/${apiKeys.length}. Retrying ${sport.title}...`);
+          await delay(1000);
         } else {
-          // this is for other errors (network, etc.), not key exhaustion
-          console.error(`An unexpected error occurred fetching odds for ${sport.key}:`, e.message);
-          break; // exit the retry loop for this sport and move to the next one
+          console.error(`Unexpected error fetching odds for ${sport.key}:`, e.message);
+          break; // non-key error — skip this sport
         }
       }
     }
 
-    // -------------------------------Filtering matches------------------------------------
-
-    // First, filter the matches to see what will actually be processed.
-    const timeFilteredMatches = matches.filter(
-      (match) => new Date(match.commence_time) < oneWeekFromNow
+    // ── Filter matches ───────────────────────────────────────────────────
+    const timeFiltered = matches.filter(
+      (m) => new Date(m.commence_time) < oneWeekFromNow
     );
-    const fullyFilteredMatches = timeFilteredMatches  // filtering for atleast 2 bookmakers from target list
-      .map((match) => {
-        const filteredBookmakers = match.bookmakers.filter((bookmaker) =>
-          TARGET_BOOKMAKERS.includes(bookmaker.key)
-        );
-        return { ...match, bookmakers: filteredBookmakers };
-      })
-      .filter((match) => match.bookmakers.length >= 2); // need at least 2 bookmakers to consider
+    const fullyFiltered = timeFiltered
+      .map((m) => ({
+        ...m,
+        bookmakers: m.bookmakers.filter((bk) => TARGET_BOOKMAKERS.includes(bk.key)),
+      }))
+      .filter((m) => m.bookmakers.length >= 2);
 
-    // -------------------------------------Storing filtered matches in Match DB----------------------------
-    for (const match of fullyFilteredMatches) {
+    // ── Save matches & calculate arbitrage ───────────────────────────────
+    for (const match of fullyFiltered) {
+      const sportCategory = extractSportCategory(match.sport_title);
+
+      // Persist match history
       const matchData = {
         id: match.id,
         sport_key: match.sport_key,
@@ -140,79 +174,77 @@ const runArbitrageCheck = async (io) => {
         commence_time: new Date(match.commence_time),
         home_team: match.home_team,
         away_team: match.away_team,
-        bookmakers: match.bookmakers.map((bookmaker) => ({
-          key: bookmaker.key,
-          title: bookmaker.title,
-          last_update: new Date(bookmaker.last_update),
-          markets: bookmaker.markets.map((market) => ({
-            key: market.key,
-            outcomes: market.outcomes.map((outcome) => ({
-              name: outcome.name,
-              price: outcome.price,
-            })),
+        bookmakers: match.bookmakers.map((bk) => ({
+          key: bk.key,
+          title: bk.title,
+          last_update: new Date(bk.last_update),
+          markets: bk.markets.map((mkt) => ({
+            key: mkt.key,
+            outcomes: mkt.outcomes.map((o) => ({ name: o.name, price: o.price })),
           })),
         })),
       };
-      await Match.findOneAndUpdate({ id: match.id }, matchData, {
-        upsert: true,
-        new: true,
-      });
+      await Match.findOneAndUpdate({ id: match.id }, matchData, { upsert: true, new: true });
       totalHistoricalSaved++;
       matchesProcessedThisRun++;
 
-      // ---------------------------------- Arbitrage Calculation Logic for filtered matches ------------------------------------
-
+      // ── Arbitrage calculation ────────────────────────────────────────
       const outcomes = new Map();
-      match.bookmakers.forEach((bookmaker) => {
-        const h2hMarket = bookmaker.markets.find((market) => market.key === 'h2h');
-        if (!h2hMarket) return;
-        h2hMarket.outcomes.forEach((outcome) => {
-          const currentBest = outcomes.get(outcome.name);
-          if (!currentBest || outcome.price > currentBest.best_price) {
-            outcomes.set(outcome.name, {
-              best_price: outcome.price,
-              bookmaker_key: bookmaker.key,
-              bookmaker_title: bookmaker.title,
+      match.bookmakers.forEach((bk) => {
+        const h2h = bk.markets.find((mkt) => mkt.key === 'h2h');
+        if (!h2h) return;
+        h2h.outcomes.forEach((o) => {
+          const current = outcomes.get(o.name);
+          if (!current || o.price > current.best_price) {
+            outcomes.set(o.name, {
+              best_price: o.price,
+              bookmaker_key: bk.key,
+              bookmaker_title: bk.title,
             });
           }
         });
       });
-      // upto here it finds the best odds available for each outcome from different bookmakers
+
       const numOutcomes = outcomes.size;
       const outcomeNames = Array.from(outcomes.keys());
-
-      // Check if it's a valid 2-way market (no "Draw" outcome)
       const isTwoWay = numOutcomes === 2 && !outcomeNames.includes('Draw');
-      // Check if it's a valid 3-way market (must include home, away, and draw)
-      const isThreeWay = numOutcomes === 3 && outcomeNames.includes('Draw') && outcomeNames.includes(match.home_team) && outcomeNames.includes(match.away_team);
+      const isThreeWay =
+        numOutcomes === 3 &&
+        outcomeNames.includes('Draw') &&
+        outcomeNames.includes(match.home_team) &&
+        outcomeNames.includes(match.away_team);
 
-      if (!isTwoWay && !isThreeWay) {
-        continue; // skip this match if it's not a complete 2-way or 3-way market
-      }
+      if (!isTwoWay && !isThreeWay) continue;
 
       let sumProb = 0;
       outcomes.forEach((info) => (sumProb += 1 / info.best_price));
 
       if (sumProb < 1) {
         const profit_percentage = (1 / sumProb - 1) * 100;
+
+        // Discard implausible outliers — real arb opportunities are rarely > 5%
+        if (profit_percentage > MAX_ARBIT_PROFIT) {
+          console.warn(`Skipping ${match.home_team} vs ${match.away_team}: profit ${profit_percentage.toFixed(1)}% exceeds cap`);
+          continue;
+        }
+
         const total_stake = 100;
         const total_return = total_stake / sumProb;
         const total_profit_on_100 = total_return - total_stake;
 
-        const bets = Array.from(outcomes.entries()).map(([outcome_name, info]) => {
-          const wager_amount = total_return / info.best_price;
-          return {
-            bookmaker_key: info.bookmaker_key,
-            bookmaker_title: info.bookmaker_title,
-            outcome_name,
-            outcome_price: info.best_price,
-            wager_amount: wager_amount,
-          };
-        });
-// pushes into the array and later stored in opportunity db
+        // wager_i = total_return / odds_i (standard arb formula; all wagers sum to total_stake)
+        const bets = Array.from(outcomes.entries()).map(([outcome_name, info]) => ({
+          bookmaker_key: info.bookmaker_key,
+          bookmaker_title: info.bookmaker_title,
+          outcome_name,
+          outcome_price: info.best_price,
+          wager_amount: total_return / info.best_price,
+        }));
+
         live_opportunities.push({
           match_id: match.id,
           sport_key: match.sport_key,
+          sport_category: sportCategory,
           sport_title: match.sport_title,
           home_team: match.home_team,
           away_team: match.away_team,
@@ -226,7 +258,6 @@ const runArbitrageCheck = async (io) => {
       }
     }
 
-    // progress update after finishing a sport
     io?.emit('status_update', {
       message: `Scanning ${sport.title}...`,
       matchesScanned: totalHistoricalSaved,
@@ -235,39 +266,40 @@ const runArbitrageCheck = async (io) => {
     await delay(1000);
   }
 
-  console.log(`Saved/Updated ${totalHistoricalSaved} historical matches.`);
-  console.log(`Calculated ${live_opportunities.length} currently live opportunities.`);
+  console.log(`Saved/updated ${totalHistoricalSaved} matches.`);
+  console.log(`Found ${live_opportunities.length} live arbitrage opportunities.`);
 
-  // Marks the opportunities as 'past' if from previous session run and not in current live opportunities
-  const liveMatchIds = live_opportunities.map((opp) => opp.match_id);
+  // ── Mark old live opportunities as 'past' ────────────────────────────────
+  const liveMatchIds = live_opportunities.map((o) => o.match_id);
   await Opportunity.updateMany(
     { status: 'live', match_id: { $nin: liveMatchIds } },
     { $set: { status: 'past' } }
   );
-// ------------------------------- Storing live opportunities in opportunity DB ------------------------------------
 
+  // ── Upsert live opportunities ────────────────────────────────────────────
   for (const opp of live_opportunities) {
     await Opportunity.findOneAndUpdate(
       { match_id: opp.match_id },
-      { ...opp, status: 'live' }, // set status to 'live'
+      { ...opp, status: 'live' },
       { upsert: true, new: true }
     );
   }
   console.log(`Upserted ${live_opportunities.length} live opportunities.`);
 
-  const cronExpression = '0 * * * *';    // scheduled in server.js but only here to calculate next run time
+  // ── Calculate next run timestamp from the actual cron schedule ───────────
   let nextRunTimestamp = null;
   try {
-    const interval = parseExpression(cronExpression);
+    const interval = parseExpression(cronSchedule);
     nextRunTimestamp = interval.next().toDate();
   } catch (err) {
-    console.error("Could not parse cron expression:", err.message);
+    console.error('Could not parse cron expression:', err.message);
   }
-// -------------------------------- Broadcasting results to all----------------------------------------------
+
+  // ── Broadcast results ────────────────────────────────────────────────────
   if (io) {
     const allOpportunities = await Opportunity.find({});
     io.emit('new_opportunities', {
-      opportunities: allOpportunities, 
+      opportunities: allOpportunities,
       stats: {
         matchesScanned: totalHistoricalSaved,
         lastUpdated: new Date(),

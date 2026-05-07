@@ -5,6 +5,14 @@ const OpportunitySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  sport_key: {
+    type: String,
+    default: ''
+  },
+  sport_category: {
+    type: String,
+    default: ''
+  },
   sport_title: {
     type: String,
     required: true
@@ -24,6 +32,10 @@ const OpportunitySchema = new mongoose.Schema({
   profit_percentage: {
     type: Number,
     required: true
+  },
+  total_profit_on_100: {
+    type: Number,
+    default: 0
   },
   bets_to_place: [
     {

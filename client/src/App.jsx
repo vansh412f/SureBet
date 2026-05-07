@@ -15,13 +15,13 @@ const AppContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
 }));
 
-const MainContent = styled(Box)(({ theme }) => ({
+const MainContent = styled(Box)(() => ({
   display: 'flex',
   flex: 1,
   marginTop: 64,
 }));
 
-const TableContainer = styled(Box)(({ theme }) => ({
+const TableContainer = styled(Box)(() => ({
   flex: 1,
   display: 'flex',
   flexDirection: 'column',
@@ -30,19 +30,22 @@ const TableContainer = styled(Box)(({ theme }) => ({
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Single call site for the WebSocket hook (Bug 7 fix — prevents double listeners)
   useOpportunities();
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    setIsSidebarOpen((prev) => !prev);
   };
 
   return (
     <AppContainer>
+      {/* CssBaseline only here — removed duplicate from main.jsx (Bug 12 fix) */}
       <CssBaseline />
       <Header />
       <MainContent>
-        <FilterSidebar 
-          isOpen={isSidebarOpen} 
+        <FilterSidebar
+          isOpen={isSidebarOpen}
           onToggle={toggleSidebar}
         />
         <TableContainer>
@@ -56,6 +59,5 @@ function App() {
     </AppContainer>
   );
 }
-
 
 export default App;

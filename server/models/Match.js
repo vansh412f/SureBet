@@ -4,7 +4,6 @@ const MatchSchema = new mongoose.Schema({
     id: {
         type: String,
         required: true,
-        unique: true
     },
     sport_key: {
         type: String,
@@ -63,5 +62,7 @@ const MatchSchema = new mongoose.Schema({
         }
     ]
 });
+
+MatchSchema.index({ id: 1 }, { unique: true });
 
 module.exports = mongoose.model('Match', MatchSchema);

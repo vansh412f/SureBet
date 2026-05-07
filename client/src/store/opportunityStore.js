@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-// handling all the states here via zustand store
+import { getSportCat } from '../utils/sportUtils';
+
 export const useOpportunityStore = create(
   persist(
     (set, get) => ({
-      opportunities: [],                     //array of all arbitrage opportunities
+      opportunities: [],
       stats: {
         matchesScanned: 0,
         lastUpdated: null,
@@ -27,10 +28,11 @@ export const useOpportunityStore = create(
         bookmakers: [],
         minProfit: 0,
       },
-      viewMode: 'live', // 'live' or 'past'
+      viewMode: 'live',
       isLoading: true,
+      isConnected: false,      // reactive connection state (Bug 10)
       connectionError: null,
-      apiStatus: 'ok', // 'ok' or 'limit_reached'
+      apiStatus: 'ok',
 
       setOpportunities: (payload) =>
         set({
@@ -38,14 +40,14 @@ export const useOpportunityStore = create(
           stats: payload.stats || { matchesScanned: 0, lastUpdated: null, nextRunTimestamp: null },
           isLoading: false,
           connectionError: null,
-          apiStatus: payload.opportunities ? 'ok' : get().apiStatus, // Only reset to 'ok' if valid data received
+          apiStatus: payload.opportunities ? 'ok' : get().apiStatus,
         }),
 
       setConnectionError: (error) =>
         set({
           connectionError: error,
           isLoading: false,
-          apiStatus: 'ok', // Reset apiStatus to avoid conflicts with connection error
+          apiStatus: 'ok',
         }),
 
       setApiStatus: (status) =>
@@ -55,41 +57,45 @@ export const useOpportunityStore = create(
           isLoading: status === 'limit_reached' ? false : get().isLoading,
         }),
 
+      // Reactive connection status (Bug 10)
+      setIsConnected: (value) => set({ isConnected: value }),
+
       updateStatus: (newStatus) =>
         set((state) => {
-          const updatedLiveStatus = {
-            ...state.liveStatus,
-            ...newStatus,
-          };
+          const updatedLiveStatus = { ...state.liveStatus, ...newStatus };
           let isLoading = state.isLoading;
-          const messageLower = updatedLiveStatus.message.toLowerCase();
-          if (messageLower.includes('scanning') || messageLower.includes('initializing')) {
+          const msgLower = updatedLiveStatus.message.toLowerCase();
+          if (msgLower.includes('scanning') || msgLower.includes('initializing') || msgLower.includes('discovering')) {
             isLoading = true;
-          } else if (messageLower.includes('complete') || messageLower.includes('done')) {
+          } else if (msgLower.includes('complete') || msgLower.includes('done')) {
             isLoading = false;
           }
+          return { liveStatus: updatedLiveStatus, isLoading };
+        }),
+
+      // Bug 15 fix: read viewMode fresh via get() so there's no stale-closure risk
+      updateFilter: (filterKey, value, viewMode) =>
+        set((state) => {
+          const mode = viewMode || get().viewMode;
           return {
-            liveStatus: updatedLiveStatus,
-            isLoading,
+            [`${mode}Filters`]: {
+              ...state[`${mode}Filters`],
+              [filterKey]: value,
+            },
           };
         }),
 
-      updateFilter: (filterKey, value, viewMode = get().viewMode) =>
-        set((state) => ({
-          [`${viewMode}Filters`]: {
-            ...state[`${viewMode}Filters`],
-            [filterKey]: value,
-          },
-        })),
-
-      resetFilters: (viewMode = get().viewMode) =>
-        set({
-          [`${viewMode}Filters`]: {
-            sport: 'All',
-            leagues: [],
-            bookmakers: [],
-            minProfit: 0,
-          },
+      resetFilters: (viewMode) =>
+        set(() => {
+          const mode = viewMode || get().viewMode;
+          return {
+            [`${mode}Filters`]: {
+              sport: 'All',
+              leagues: [],
+              bookmakers: [],
+              minProfit: 0,
+            },
+          };
         }),
 
       setViewMode: (mode) => set({ viewMode: mode }),
@@ -97,51 +103,60 @@ export const useOpportunityStore = create(
       getFilteredOpportunities: () => {
         const { opportunities, viewMode, liveFilters, pastFilters } = get();
         const filters = viewMode === 'live' ? liveFilters : pastFilters;
-        const viewOpportunities = opportunities.filter(op => op.status === viewMode);
+        const viewOpportunities = opportunities.filter((op) => op.status === viewMode);
 
         return viewOpportunities.filter((op) => {
-          if (filters.sport !== 'All' && op.sport_title !== filters.sport) return false;
+          // Permanent cap: discard records above 60% (matches backend MAX_ARBIT_PROFIT)
+          if ((op.profit_percentage || 0) > 60) return false;
+
+          // Sport filter — use getSportCat for null sport_category fallback
+          if (filters.sport !== 'All' && getSportCat(op) !== filters.sport) return false;
+
+          // Leagues filter — match against sport_title (e.g. "Soccer - EPL")
           if (filters.leagues.length > 0 && !filters.leagues.includes(op.sport_title)) return false;
 
+          // Bookmakers filter
           if (filters.bookmakers.length > 0) {
-            const hasMatchingBookmaker = op.bets_to_place.some((bet) =>
+            const hasMatchingBookmaker = op.bets_to_place?.some((bet) =>
               filters.bookmakers.includes(bet.bookmaker_title)
             );
             if (!hasMatchingBookmaker) return false;
           }
 
+          // Minimum profit filter
           if (op.profit_percentage < filters.minProfit) return false;
 
           return true;
         });
       },
 
+      // Returns unique sport categories: "Soccer", "Basketball", etc. (with null fallback)
       getAvailableSports: () => {
         const { opportunities, viewMode } = get();
-        const viewOpportunities = opportunities.filter(op => op.status === viewMode);
-        const sports = [...new Set(viewOpportunities.map((op) => op.sport_title))];
+        const viewOpps = opportunities.filter((op) => op.status === viewMode);
+        const sports = [...new Set(viewOpps.map(op => getSportCat(op)).filter(Boolean))];
         return sports.sort();
       },
 
+      // Returns unique sport_titles within the selected sport category: "Soccer - EPL", etc.
       getAvailableLeagues: () => {
         const { opportunities, viewMode, liveFilters, pastFilters } = get();
         const filters = viewMode === 'live' ? liveFilters : pastFilters;
-        const viewOpportunities = opportunities.filter(op => op.status === viewMode);
-        let filteredOpps = viewOpportunities;
+        let viewOpps = opportunities.filter((op) => op.status === viewMode);
 
         if (filters.sport !== 'All') {
-          filteredOpps = viewOpportunities.filter((op) => op.sport_title === filters.sport);
+          viewOpps = viewOpps.filter((op) => op.sport_category === filters.sport);
         }
 
-        const leagues = [...new Set(filteredOpps.map((op) => op.sport_title))];
+        const leagues = [...new Set(viewOpps.map((op) => op.sport_title).filter(Boolean))];
         return leagues.sort();
       },
 
       getAvailableBookmakers: () => {
         const { opportunities, viewMode } = get();
-        const viewOpportunities = opportunities.filter(op => op.status === viewMode);
+        const viewOpps = opportunities.filter((op) => op.status === viewMode);
         const bookmakers = new Set();
-        viewOpportunities.forEach((op) => {
+        viewOpps.forEach((op) => {
           op.bets_to_place.forEach((bet) => bookmakers.add(bet.bookmaker_title));
         });
         return [...bookmakers].sort();
@@ -161,6 +176,7 @@ export const useOpportunityStore = create(
         opportunities: state.opportunities,
         liveFilters: state.liveFilters,
         pastFilters: state.pastFilters,
+        // Note: isConnected is intentionally NOT persisted — it must reflect true socket state on load
       }),
     }
   )
