@@ -65,4 +65,8 @@ const MatchSchema = new mongoose.Schema({
 
 MatchSchema.index({ id: 1 }, { unique: true });
 
+// BUG-19 fix: Auto-expire historical match documents 30 days after the match starts.
+// This prevents the matches collection from growing unbounded over months of operation.
+MatchSchema.index({ commence_time: 1 }, { expireAfterSeconds: 30 * 24 * 3600 });
+
 module.exports = mongoose.model('Match', MatchSchema);
