@@ -14,17 +14,21 @@ connectDB();
 
 const app = express();
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000"
-}));
+// BUG-16 fix: support comma-separated list of allowed origins in FRONTEND_URL.
+// e.g. FRONTEND_URL="https://myapp.vercel.app,https://www.myapp.vercel.app"
+const rawOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+const allowedOrigins = rawOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+const corsOrigin = allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins;
+
+app.use(cors({ origin: corsOrigin }));
 
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
+    origin: corsOrigin,
+    methods: ['GET', 'POST'],
+  },
 });
 
 // Schedule (shared so both the cron job and the initial run use the same expression)
@@ -60,7 +64,7 @@ io.on('connection', async (socket) => {
 const PORT = process.env.PORT || 5000;
 
 app.get('/', (req, res) => {
-  res.json({ message: "Arbitrage Finder API is running" });
+  res.json({ message: 'Arbitrage Finder API is running' });
 });
 
 httpServer.listen(PORT, () => {
