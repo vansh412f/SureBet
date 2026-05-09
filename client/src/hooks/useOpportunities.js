@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useOpportunityStore } from '../store/opportunityStore';
 import socket from '../api/socket';
 
 export const useOpportunities = () => {
+  // BUG-07 fix: removed local useState for isConnected — it was dead code because
+  // App.jsx discards the hook's return value. All connection state lives in the Zustand store.
   const { setOpportunities, setApiStatus, updateStatus, setIsConnected } = useOpportunityStore();
-
-  // Reactive connection state (Bug 10 fix) — driven by socket events, not a one-time snapshot
-  const [isConnected, setLocalConnected] = useState(socket.connected);
 
   useEffect(() => {
     const handleNewOpportunities = (data) => {
@@ -23,13 +22,11 @@ export const useOpportunities = () => {
     };
 
     const handleConnect = () => {
-      setLocalConnected(true);
       setIsConnected(true);
       setApiStatus('ok');
     };
 
     const handleDisconnect = () => {
-      setLocalConnected(false);
       setIsConnected(false);
     };
 
@@ -40,7 +37,6 @@ export const useOpportunities = () => {
     socket.on('disconnect', handleDisconnect);
 
     // Sync initial connection state with socket
-    setLocalConnected(socket.connected);
     setIsConnected(socket.connected);
 
     return () => {
@@ -51,6 +47,4 @@ export const useOpportunities = () => {
       socket.off('disconnect', handleDisconnect);
     };
   }, [setOpportunities, setApiStatus, updateStatus, setIsConnected]);
-
-  return { isConnected };
 };
