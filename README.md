@@ -29,7 +29,6 @@ SureBet is the result. It handles real-time data ingestion, resilient multi-key 
 | **Advanced Filtering** | Filter by sport, competition/league, bookmaker, and minimum profit % |
 | **Sort & Paginate** | Sort by profit %, match time, or last updated. 20 rows per page |
 | **Stats Bar** | Live count of opportunities, best profit %, and average profit % |
-| **Credit Safety Brake** | Reads `x-requests-remaining` from the Odds API response headers; stops scanning before credits run out |
 | **Multi-Key Rotation** | Automatically rotates to the next API key on 401/429 responses |
 | **Data Integrity Filter** | Opportunities with profit > 60% are treated as data errors — never stored in MongoDB or shown in the UI |
 | **Reactive UI** | All filter sidebar data (leagues, bookmakers, counts) updates reactively the moment WebSocket data arrives |
@@ -59,12 +58,11 @@ SureBet is the result. It handles real-time data ingestion, resilient multi-key 
 │  Node.js / Express Backend                                   │
 │  ┌─────────────────────────────────────────────────────────┐ │
 │  │  arbitrageProcessor.js                                  │ │
-│  │  ┌───────────────┐  ┌──────────────┐  ┌─────────────┐  │ │
-│  │  │  API Key      │  │  Credit      │  │  Arbitrage  │  │ │
-│  │  │  Rotator      │  │  Safety      │  │  Engine     │  │ │
-│  │  │  (401/429)    │  │  Brake       │  │  (sumProb   │  │ │
-│  │  └───────────────┘  └──────────────┘  │   < 1 test) │  │ │
-│  │                                        └─────────────┘  │ │
+│  │  ┌───────────────┐  ┌─────────────────────────────────┐  │ │
+│  │  │  API Key      │  │  Arbitrage Engine               │  │ │
+│  │  │  Rotator      │  │  (sumProb < 1 test, 60% cap,    │  │ │
+│  │  │  (401/429)    │  │   fuzzy 3-way team matching)    │  │ │
+│  │  └───────────────┘  └─────────────────────────────────┘  │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │  node-cron  →  runs every hour  →  broadcasts via Socket.IO  │
 └──────────────────────────┬───────────────────────────────────┘
@@ -125,7 +123,7 @@ ARBIT PROFIT/
 │   │   ├── Match.js                 # Full bookmaker odds history
 │   │   └── SystemState.js           # API key rotation index persistence
 │   ├── services/
-│   │   └── arbitrageProcessor.js    # Core scan engine (key rotation, arb calc, safety brake)
+│   │   └── arbitrageProcessor.js    # Core scan engine (key rotation, arb calc, 60% outlier cap)
 │   └── server.js                    # Express, Socket.IO, cron scheduler
 │
 └── client/
@@ -179,7 +177,6 @@ Create `server/.env`:
 MONGO_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/surebet
 ODDS_API_KEY=your_api_key_here          # comma-separate multiple keys: key1,key2,key3
 FRONTEND_URL=http://localhost:3000
-CREDIT_SAFETY_LIMIT=450                 # stop scanning when fewer than this many credits remain
 ```
 
 ```bash
@@ -214,9 +211,7 @@ The engine supports **multiple Odds API keys** for uninterrupted 24/7 scanning:
 ODDS_API_KEY=key_primary,key_secondary,key_tertiary
 ```
 
-**Key Rotation** — on a `401` (unauthorised) or `429` (rate limited) response the engine switches to the next key in the list and retries the current sport immediately.
-
-**Credit Safety Brake** — after every API request the engine reads the `x-requests-remaining` response header. If the remaining credits fall at or below `CREDIT_SAFETY_LIMIT`, scanning stops for the session and the frontend is notified. The scanner resets at the next scheduled cron run.
+**Key Rotation** — on a `401` (unauthorised), `422`, or `429` (rate limited) response the engine switches to the next key in the list and retries the current sport immediately. If all keys are exhausted, a **6-hour cooldown** is stored in MongoDB so the next cron tick doesn't immediately hammer the same depleted keys.
 
 ---
 
@@ -255,6 +250,7 @@ ODDS_API_KEY=key_primary,key_secondary,key_tertiary
 | `getSportCat(op)` | Returns sport category ("Soccer") — falls back to splitting `sport_title` for legacy records |
 | `formatOdd(price)` | Formats decimal odds to 2dp — `"2.10"` |
 | `scaleWager(wager, stake)` | Scales a $100-base wager to any stake — `scaleWager(48.02, 250)` → `"120.05"` |
+| `filterOpportunities(opps, mode, filters)` | Single centralised filter predicate used by table, sidebar, and store |
 | `BOOKMAKER_URLS` | Map of bookmaker key → homepage URL (20+ bookmakers) |
 | `getBookmakerUrl(key)` | Returns direct URL or `null` if not mapped |
 
