@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
-import { getSportCat } from '../../utils/sportUtils';
+import { getSportCat, filterOpportunities } from '../../utils/sportUtils';
 
 // ─── Styled Components ───────────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ const SearchInput = styled(TextField)(({ theme }) => ({
 
 const SidebarContent = ({
   onToggle, isMobile,
-  stats, filters, viewOpps,
+  stats, filters, viewMode, viewOpps,
   expandedSections, toggleSection,
   searchTerms, setSearchTerms,
   filteredCount, availableLeagues, availableBookmakers,
@@ -322,7 +322,7 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // ── Subscribe to raw store state (REACTIVE — no stale action calls) ──────
+  // ── Subscribe to raw store state (REACTIVE) ──────────────────────────────
   const opportunities  = useOpportunityStore(s => s.opportunities);
   const viewMode       = useOpportunityStore(s => s.viewMode);
   const liveFilters    = useOpportunityStore(s => s.liveFilters);
@@ -339,6 +339,7 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     [opportunities, viewMode]
   );
 
+  // BUG-03 fix: use getSportCat() consistently (was mixing sport_category vs getSportCat)
   const availableLeagues = useMemo(() => {
     const pool = filters.sport !== 'All'
       ? viewOpps.filter(op => getSportCat(op) === filters.sport)
@@ -352,18 +353,11 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     return [...bk].sort();
   }, [viewOpps]);
 
-  const filteredCount = useMemo(() => {
-    return viewOpps.filter(op => {
-      if ((op.profit_percentage || 0) > 60) return false; // permanent cap
-      if (filters.sport !== 'All' && getSportCat(op) !== filters.sport) return false;
-      if (filters.leagues.length > 0 && !filters.leagues.includes(op.sport_title)) return false;
-      if (filters.bookmakers.length > 0) {
-        if (!op.bets_to_place?.some(b => filters.bookmakers.includes(b.bookmaker_title))) return false;
-      }
-      if (op.profit_percentage < filters.minProfit) return false;
-      return true;
-    }).length;
-  }, [viewOpps, filters]);
+  // BUG-03 fix: uses centralised filterOpportunities() for consistent count
+  const filteredCount = useMemo(
+    () => filterOpportunities(opportunities, viewMode, filters).length,
+    [opportunities, viewMode, filters]
+  );
 
   // ── Local UI state ───────────────────────────────────────────────────────
   const [expandedSections, setExpandedSections] = useState({ leagues: true, bookmakers: true, profit: true });
@@ -380,27 +374,28 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     [availableBookmakers, searchTerms.bookmakers]
   );
 
+  // BUG-04 fix: pass explicit viewMode to updateFilter so there's no stale-closure risk
   const handleLeagueChange = (league, checked) =>
-    updateFilter('leagues', checked ? [...filters.leagues, league] : filters.leagues.filter(l => l !== league));
+    updateFilter('leagues', checked ? [...filters.leagues, league] : filters.leagues.filter(l => l !== league), viewMode);
 
   const handleBookmakerChange = (bk, checked) =>
-    updateFilter('bookmakers', checked ? [...filters.bookmakers, bk] : filters.bookmakers.filter(b => b !== bk));
+    updateFilter('bookmakers', checked ? [...filters.bookmakers, bk] : filters.bookmakers.filter(b => b !== bk), viewMode);
 
   const handleSelectAll = (type, items) => {
-    const key = type;
-    const current = filters[key];
-    updateFilter(key, current.length === items.length ? [] : items);
+    const current = filters[type];
+    updateFilter(type, current.length === items.length ? [] : items, viewMode);
   };
 
-  const handleProfitChange = (_, val) => updateFilter('minProfit', val);
+  // BUG-04 fix: pass explicit viewMode
+  const handleProfitChange = (_, val) => updateFilter('minProfit', val, viewMode);
 
   const handleClearAll = () => {
-    resetFilters();
+    resetFilters(viewMode);
     setSearchTerms({ leagues: '', bookmakers: '' });
   };
 
   const contentProps = {
-    onToggle, isMobile, stats, filters, viewOpps,
+    onToggle, isMobile, stats, filters, viewMode, viewOpps,
     expandedSections, toggleSection,
     searchTerms, setSearchTerms,
     filteredCount, availableLeagues, availableBookmakers,
