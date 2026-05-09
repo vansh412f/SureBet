@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { Box, Button, Chip, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
@@ -76,6 +76,8 @@ const Sep = styled(Box)(({ theme }) => ({
 const SportFilterBar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // BUG-10 fix: removed the no-op scroll listener useEffect — scrollRef is still used for
+  // potential future use or native scroll behaviour, but the empty handler is gone.
   const scrollRef = useRef(null);
 
   // ── Reactive subscriptions ───────────────────────────────────────────────
@@ -101,18 +103,11 @@ const SportFilterBar = () => {
   const getCount = sport =>
     sport === 'All' ? viewOpps.length : viewOpps.filter(op => getSportCat(op) === sport).length;
 
+  // BUG-04 fix: pass explicit viewMode to updateFilter
   const handleSportChange = sport => {
-    updateFilter('sport', sport);
-    if (sport !== filters.sport) updateFilter('leagues', []);
+    updateFilter('sport', sport, viewMode);
+    if (sport !== filters.sport) updateFilter('leagues', [], viewMode);
   };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onScroll = () => {};
-    el.addEventListener('scroll', onScroll);
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [availableSports]);
 
   return (
     <Bar ref={scrollRef}>
