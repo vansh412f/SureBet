@@ -2,16 +2,16 @@ import React, { useState, useMemo } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, TableSortLabel, Paper, Typography, Box,
-  CircularProgress, Pagination, Button, Skeleton,
+  CircularProgress, Pagination, Button,
   useMediaQuery, useTheme, Card, CardContent,
 } from '@mui/material';
 import {
   SearchOff, History, WifiOff, ErrorOutline,
-  TrendingUp, ShowChart, AccessTime, ArrowUpward,
+  TrendingUp, ShowChart, AccessTime,
 } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
-import { getSportCat } from '../../utils/sportUtils';
+import { filterOpportunities } from '../../utils/sportUtils';
 import OpportunityRow from './OpportunityRow';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
@@ -96,7 +96,9 @@ const ROWS_PER_PAGE = 20;
 // ─── Component ────────────────────────────────────────────────────────────────
 const OpportunityTable = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // BUG-13: removed unused colSx variable
+  // BUG-14: removed unused Skeleton import
+  // BUG-15: removed unused ArrowUpward import
 
   // ── Reactive subscriptions ─────────────────────────────────────────────
   const opportunities  = useOpportunityStore(s => s.opportunities);
@@ -115,20 +117,11 @@ const OpportunityTable = () => {
   const [sortDir, setSortDir]     = useState('desc');
   const [page, setPage]           = useState(1);
 
-  // ── Filtered opportunities (reactive) ────────────────────────────────
-  const filtered = useMemo(() => {
-    const view = opportunities.filter(op => op.status === viewMode);
-    return view.filter(op => {
-      if ((op.profit_percentage || 0) > 60) return false; // permanent cap
-      if (filters.sport !== 'All' && getSportCat(op) !== filters.sport) return false;
-      if (filters.leagues.length > 0 && !filters.leagues.includes(op.sport_title)) return false;
-      if (filters.bookmakers.length > 0) {
-        if (!op.bets_to_place?.some(b => filters.bookmakers.includes(b.bookmaker_title))) return false;
-      }
-      if (op.profit_percentage < filters.minProfit) return false;
-      return true;
-    });
-  }, [opportunities, viewMode, filters]);
+  // BUG-03 fix: uses the single centralised filterOpportunities() helper
+  const filtered = useMemo(
+    () => filterOpportunities(opportunities, viewMode, filters),
+    [opportunities, viewMode, filters]
+  );
 
   // ── Stats ─────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -226,8 +219,6 @@ const OpportunityTable = () => {
       </EmptyCard>
     </EmptyBox>
   );
-
-  const colSx = { th: { cursor: 'pointer' } };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
