@@ -291,10 +291,7 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
     await delay(500);
   }
 
-  // Mark fully completed if we exhausted all sports before hitting the match limit
-  if (!scanCompletedFully) {
-    scanCompletedFully = true;
-  }
+  // Scan reached this point = all sports processed (early-return handles key-exhaustion)
 
   console.log(`Saved/updated ${totalHistoricalSaved} matches.`);
   console.log(`Found ${live_opportunities.length} live arbitrage opportunities.`);
