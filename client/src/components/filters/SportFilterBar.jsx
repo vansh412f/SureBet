@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Box, Button, Chip, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
@@ -76,9 +76,7 @@ const Sep = styled(Box)(({ theme }) => ({
 const SportFilterBar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  // BUG-10 fix: removed the no-op scroll listener useEffect — scrollRef is still used for
-  // potential future use or native scroll behaviour, but the empty handler is gone.
-  const scrollRef = useRef(null);
+
 
   // ── Reactive subscriptions ───────────────────────────────────────────────
   const opportunities = useOpportunityStore(s => s.opportunities);
@@ -110,7 +108,7 @@ const SportFilterBar = () => {
   };
 
   return (
-    <Bar ref={scrollRef}>
+    <Bar>
       {/* Stats chip */}
       <Box display="flex" alignItems="center" gap={0.8} flexShrink={0}
         sx={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 2, px: 1.2, py: 0.5 }}>
