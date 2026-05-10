@@ -273,13 +273,13 @@ const Header = () => {
     apiStatus === 'limit_reached' ? (
       <Box sx={{ p: 1.5 }}>
         <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5, color: 'warning.main' }}>
-          ⚠️ API Quota Exceeded
+          ⚠️ API Keys Exhausted
         </Typography>
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
-          Daily request limit has been reached.
+          All API keys have been used up. Scans will resume automatically after a 6-hour cooldown.
         </Typography>
         <Typography variant="caption" sx={{ color: 'success.main', fontSize: '0.7rem' }}>
-          ✓ System operational · Data may be cached
+          ✓ Historical data is still available
         </Typography>
       </Box>
     ) : isConnected ? (
