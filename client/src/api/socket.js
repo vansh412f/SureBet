@@ -1,6 +1,5 @@
 import { io } from 'socket.io-client';
 
-// BUG-17 fix: guard against missing VITE_WEBSOCKET_URL in dev.
 const wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
 if (!wsUrl && import.meta.env.DEV) {
   console.warn(
@@ -10,9 +9,6 @@ if (!wsUrl && import.meta.env.DEV) {
   );
 }
 
-// BUG-02 fix: removed module-level socket.on('connect') and socket.on('connect_error') handlers.
-// All store updates from socket events must live in useOpportunities.js (the hook) only,
-// to avoid duplicate handlers racing to update the same Zustand store slices.
 export const socket = io(wsUrl, {
   transports: ['websocket', 'polling'],
   timeout: 20000,

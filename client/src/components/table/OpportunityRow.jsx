@@ -10,13 +10,11 @@ import { styled, keyframes } from '@mui/material/styles';
 import { formatDistanceToNow, format } from 'date-fns';
 import { getSportCat, formatOdd, scaleWager, getBookmakerUrl } from '../../utils/sportUtils';
 
-// ─── Animations ──────────────────────────────────────────────────────────────
 const flashIn = keyframes`
   0%   { background: rgba(16,185,129,0.18); }
   100% { background: transparent; }
 `;
 
-// ─── Styled ───────────────────────────────────────────────────────────────────
 const StyledRow = styled(TableRow)(({ theme, isnew }) => ({
   animation: isnew ? `${flashIn} 2s ease-out forwards` : 'none',
   cursor: 'default',
@@ -90,33 +88,22 @@ const StakeInput = styled(TextField)(({ theme }) => ({
   },
 }));
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-/**
- * Returns match date string + a 3-state status object.
- * Status values:
- *   'upcoming'    → match hasn't started
- *   'inprogress'  → started but < 3 hours ago (likely still live)
- *   'ended'       → started more than 3 hours ago (almost certainly finished)
- */
-const MATCH_DURATION_MS = 3 * 60 * 60 * 1000; // 3-hour window covers most sports
+const MATCH_DURATION_MS = 3 * 60 * 60 * 1000;
 
 const formatMatchTime = (ts) => {
   if (!ts) return { date: 'TBD', label: '—', status: 'upcoming' };
   const d = new Date(ts);
   const now = Date.now();
-  const diffMs = now - d.getTime(); // positive = past
+  const diffMs = now - d.getTime();
 
   let status, label;
   if (diffMs < 0) {
-    // Future
     status = 'upcoming';
     label = `in ${formatDistanceToNow(d)}`;
   } else if (diffMs < MATCH_DURATION_MS) {
-    // Started but likely still running
     status = 'inprogress';
     label = '⚡ In Progress';
   } else {
-    // Over
     status = 'ended';
     label = '✓ Ended';
   }
@@ -130,7 +117,6 @@ const formatUpdated = (ts) => {
   catch { return '—'; }
 };
 
-// ─── CopyButton ───────────────────────────────────────────────────────────────
 const CopyButton = ({ opportunity, stake }) => {
   const [copied, setCopied] = useState(false);
 
@@ -163,7 +149,6 @@ const CopyButton = ({ opportunity, stake }) => {
   );
 };
 
-// ─── Main Row ─────────────────────────────────────────────────────────────────
 const OpportunityRow = ({ opportunity, isNew = false }) => {
   const [stake, setStake] = useState(100);
 
@@ -186,8 +171,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
 
   return (
     <StyledRow isnew={isNew ? 1 : 0}>
-
-      {/* ── Match ───────────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 190 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: 'text.primary', lineHeight: 1.3, mb: 0.5 }}>
           {opportunity.home_team} <Box component="span" sx={{ color: 'text.disabled', fontWeight: 400, mx: 0.3 }}>vs</Box> {opportunity.away_team}
@@ -206,7 +189,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
         </Box>
       </TableCell>
 
-      {/* ── Profit ──────────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 110, textAlign: 'right' }}>
         <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: profitColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           +{profitPct.toFixed(2)}%
@@ -216,7 +198,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
         </Typography>
       </TableCell>
 
-      {/* ── Bets ────────────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 280 }}>
         <Box display="flex" flexDirection="column" gap={0.8}>
           {opportunity.bets_to_place?.map((bet, i) => {
@@ -244,7 +225,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
             );
           })}
 
-          {/* Stake calculator */}
           <Box display="flex" alignItems="center" gap={1} mt={0.5}>
             <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', whiteSpace: 'nowrap' }}>Stake</Typography>
             <StakeInput
@@ -259,7 +239,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
         </Box>
       </TableCell>
 
-      {/* ── Match Time ──────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 130 }}>
         <Box display="flex" alignItems="center" gap={0.6} mb={0.3}>
           <Schedule sx={{ fontSize: 13, color: 'text.disabled' }} />
@@ -276,7 +255,6 @@ const OpportunityRow = ({ opportunity, isNew = false }) => {
         </Typography>
       </TableCell>
 
-      {/* ── Updated ─────────────────────────────────────────────────────── */}
       <TableCell sx={{ minWidth: 100 }}>
         <Box display="flex" alignItems="center" gap={0.5}>
           <AccessTime sx={{ fontSize: 12, color: 'text.disabled' }} />

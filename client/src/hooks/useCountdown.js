@@ -1,12 +1,5 @@
 import { useEffect, useState } from 'react';
 
-/**
- * Formats milliseconds into a human-readable countdown string.
- * > 1 hour  → "1h 23m"
- * 1–60 min  → "45m 30s"
- * < 60 sec  → "59s"
- * expired   → null (caller can show "Scanning now...")
- */
 function formatCountdown(ms) {
   if (ms <= 0 || Number.isNaN(ms)) return null;
   const totalSec = Math.floor(ms / 1000);
@@ -18,11 +11,6 @@ function formatCountdown(ms) {
   return `${s}s`;
 }
 
-/**
- * useCountdown
- * @param {Date|string|number|null} targetTimestamp
- * @returns {string|null} formatted countdown string, or null when expired/unset
- */
 export const useCountdown = (targetTimestamp) => {
   const target = targetTimestamp ? new Date(targetTimestamp).getTime() : null;
   const [remaining, setRemaining] = useState(
@@ -31,7 +19,6 @@ export const useCountdown = (targetTimestamp) => {
 
   useEffect(() => {
     if (!target) { setRemaining(0); return; }
-    // tick immediately so display is correct on mount
     setRemaining(Math.max(0, target - Date.now()));
     const interval = setInterval(() => {
       const diff = Math.max(0, target - Date.now());

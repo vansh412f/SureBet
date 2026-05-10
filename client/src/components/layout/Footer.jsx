@@ -8,13 +8,11 @@ import {
 } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
 
-// ─── Animations ──────────────────────────────────────────────────────────────
 const shimmer = keyframes`
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 `;
 
-// ─── Styled ───────────────────────────────────────────────────────────────────
 const FooterRoot = styled(Box)(({ theme }) => ({
   background: `linear-gradient(180deg, ${theme.palette.background.default} 0%, #050510 100%)`,
   borderTop: `1px solid ${theme.palette.divider}`,
@@ -96,7 +94,6 @@ const SectionLabel = styled(Typography)({
   marginBottom: '20px',
 });
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 const FEATURES = [
   {
     icon: <WifiTethering sx={{ fontSize: 22, color: '#3B82F6' }} />,
@@ -106,7 +103,7 @@ const FEATURES = [
   {
     icon: <Speed sx={{ fontSize: 22, color: '#10B981' }} />,
     title: 'Resilient Engine',
-    desc: 'Multi-key API rotation and a credit safety brake keep the scanner running 24/7 without interruption.',
+    desc: 'Multi-key API rotation keeps the scanner running without interruption.',
   },
   {
     icon: <Security sx={{ fontSize: 22, color: '#F59E0B' }} />,
@@ -122,40 +119,28 @@ const FEATURES = [
 
 const TECH_STACK = ['Node.js', 'Express', 'Socket.IO', 'MongoDB', 'React', 'Vite', 'MUI v5', 'Zustand'];
 
-// ─── Component ────────────────────────────────────────────────────────────────
 const Footer = () => (
   <FooterRoot id="app-footer">
-
-    {/* ── Top: Brand | Features ─────────────────────────────────────── */}
     <Grid container spacing={6} mb={5}>
-
-      {/* Brand column */}
       <Grid item xs={12} md={4}>
         <Box display="flex" alignItems="center" gap={1} mb={2}>
           <TrendingUp sx={{ fontSize: 22, color: 'primary.main' }} />
           <GradientTitle variant="h6">SureBet</GradientTitle>
         </Box>
-
         <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', lineHeight: 1.75, mb: 2.5 }}>
           A professional-grade sports arbitrage finder built to scan odds across multiple bookmakers
           in real time, calculate guaranteed profit margins, and surface actionable opportunities —
           completely free.
         </Typography>
-
         <ShimmerText sx={{ fontSize: '0.78rem', fontWeight: 600, mb: 2.5 }}>
           ⚡ Live Demo: sure-bet-hazel.vercel.app
         </ShimmerText>
-
         <Box display="flex" flexWrap="wrap" gap={0.8}>
           {TECH_STACK.map(t => <TechChip key={t} label={t} size="small" />)}
         </Box>
       </Grid>
-
-      {/* Features column */}
       <Grid item xs={12} md={8}>
-        {/* ← CENTRED heading for this section */}
         <SectionLabel>Core Features</SectionLabel>
-
         <Grid container spacing={2}>
           {FEATURES.map(f => (
             <Grid item xs={12} sm={6} key={f.title}>
@@ -175,41 +160,18 @@ const Footer = () => (
         </Grid>
       </Grid>
     </Grid>
-
     <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mb: 3 }} />
-
-    {/* ── Social buttons — bottom centre ───────────────────────────── */}
     <Box display="flex" justifyContent="center" gap={1.5} mb={2.5}>
-      <SocialBtn
-        component="a"
-        href="https://github.com/vansh412f"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="GitHub"
-      >
+      <SocialBtn component="a" href="https://github.com/vansh412f" target="_blank" rel="noopener noreferrer" title="GitHub">
         <GitHub />
       </SocialBtn>
-      <SocialBtn
-        component="a"
-        href="https://linkedin.com/in/vansh-singh-profile"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="LinkedIn"
-      >
+      <SocialBtn component="a" href="https://linkedin.com/in/vansh-singh-profile" target="_blank" rel="noopener noreferrer" title="LinkedIn">
         <LinkedIn />
       </SocialBtn>
-      <SocialBtn
-        component="a"
-        href="https://sure-bet-hazel.vercel.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Live Demo"
-      >
+      <SocialBtn component="a" href="https://sure-bet-hazel.vercel.app/" target="_blank" rel="noopener noreferrer" title="Live Demo">
         <Language />
       </SocialBtn>
     </Box>
-
-    {/* ── Bottom text ───────────────────────────────────────────────── */}
     <Box display="flex" flexDirection="column" alignItems="center" gap={0.6} textAlign="center">
       <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled' }}>
         © {new Date().getFullYear()} Vansh Singh · Built for educational purposes

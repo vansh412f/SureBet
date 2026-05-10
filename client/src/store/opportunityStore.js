@@ -2,9 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getSportCat, filterOpportunities } from '../utils/sportUtils';
 
-// BUG-06 fix: maximum time (ms) to wait for new_opportunities before clearing the loading spinner.
-// Prevents a permanent spinner if the server emits status_update but then silently fails.
-const LOADING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const LOADING_TIMEOUT_MS = 5 * 60 * 1000;
 
 export const useOpportunityStore = create(
   persist(
@@ -33,16 +31,13 @@ export const useOpportunityStore = create(
         minProfit: 0,
       },
       viewMode: 'live',
-      // BUG-12 fix: start as false so persisted opportunities are shown immediately on reload
-      // instead of a spinner covering them while waiting for the socket.
       isLoading: false,
-      isConnected: false,      // reactive connection state
+      isConnected: false,
       connectionError: null,
       apiStatus: 'ok',
-      _loadingTimeoutId: null, // internal — not persisted
+      _loadingTimeoutId: null,
 
       setOpportunities: (payload) => {
-        // Clear any pending loading timeout when we receive data
         const { _loadingTimeoutId } = get();
         if (_loadingTimeoutId) {
           clearTimeout(_loadingTimeoutId);
@@ -82,7 +77,6 @@ export const useOpportunityStore = create(
 
           if (msgLower.includes('scanning') || msgLower.includes('initializing') || msgLower.includes('discovering')) {
             isLoading = true;
-            // BUG-06 fix: start a safety timeout to clear the spinner if no data arrives
             if (!_loadingTimeoutId) {
               _loadingTimeoutId = setTimeout(() => {
                 const s = useOpportunityStore.getState();
@@ -99,8 +93,6 @@ export const useOpportunityStore = create(
           return { liveStatus: updatedLiveStatus, isLoading, _loadingTimeoutId };
         }),
 
-      // BUG-04 fix: always pass explicit viewMode so there's no stale-closure risk
-      // (callers pass viewMode; defaults to current store viewMode as fallback)
       updateFilter: (filterKey, value, viewMode) =>
         set((state) => {
           const mode = viewMode || get().viewMode;
@@ -127,14 +119,12 @@ export const useOpportunityStore = create(
 
       setViewMode: (mode) => set({ viewMode: mode }),
 
-      // BUG-03 fix: delegates to the single centralised filterOpportunities() helper
       getFilteredOpportunities: () => {
         const { opportunities, viewMode, liveFilters, pastFilters } = get();
         const filters = viewMode === 'live' ? liveFilters : pastFilters;
         return filterOpportunities(opportunities, viewMode, filters);
       },
 
-      // Returns unique sport categories: "Soccer", "Basketball", etc. (with null fallback)
       getAvailableSports: () => {
         const { opportunities, viewMode } = get();
         const viewOpps = opportunities.filter((op) => op.status === viewMode);
@@ -142,7 +132,6 @@ export const useOpportunityStore = create(
         return sports.sort();
       },
 
-      // BUG-03 fix: now uses getSportCat() consistently (was using raw sport_category before)
       getAvailableLeagues: () => {
         const { opportunities, viewMode, liveFilters, pastFilters } = get();
         const filters = viewMode === 'live' ? liveFilters : pastFilters;
@@ -181,7 +170,6 @@ export const useOpportunityStore = create(
         liveFilters: state.liveFilters,
         pastFilters: state.pastFilters,
         viewMode: state.viewMode,
-        // Note: isConnected and _loadingTimeoutId are intentionally NOT persisted
       }),
     }
   )

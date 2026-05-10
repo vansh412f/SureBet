@@ -8,8 +8,6 @@ import { styled, keyframes } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
 import { useCountdown } from '../../hooks/useCountdown';
 
-// ──────────────────────── Animations ────────────────────────
-
 const pulseAnimation = keyframes`
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.15); opacity: 0.75; }
@@ -25,8 +23,6 @@ const fadeInUp = keyframes`
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
-
-// ──────────────────────── Styled Components ────────────────────────
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)`,
@@ -48,12 +44,10 @@ const LogoContainer = styled(Box)(({ theme }) => ({
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   overflow: 'hidden',
   position: 'relative',
-
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: `0 10px 24px ${theme.palette.primary.main}25`,
   },
-
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -94,7 +88,6 @@ const ViewSwitcher = styled(ButtonGroup)(({ theme }) => ({
   borderRadius: '12px',
   overflow: 'hidden',
   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.10)',
-
   '& .MuiButton-root': {
     textTransform: 'none',
     fontWeight: 700,
@@ -105,13 +98,11 @@ const ViewSwitcher = styled(ButtonGroup)(({ theme }) => ({
       fontSize: '0.75rem',
       padding: theme.spacing(0.8, 1.8),
     },
-
     '&.active': {
       background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark || theme.palette.primary.main})`,
       color: '#fff',
       boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
     },
-
     '&:not(.active)': {
       color: theme.palette.text.secondary,
       '&:hover': {
@@ -133,12 +124,8 @@ const ScanBadge = styled(Box)(({ theme, scanning }) => ({
   alignItems: 'center',
   gap: theme.spacing(0.7),
   padding: theme.spacing(0.6, 1.2),
-  background: scanning
-    ? 'rgba(16,185,129,0.1)'
-    : 'rgba(59,130,246,0.08)',
-  border: `1px solid ${
-    scanning ? 'rgba(16,185,129,0.25)' : 'rgba(59,130,246,0.2)'
-  }`,
+  background: scanning ? 'rgba(16,185,129,0.1)' : 'rgba(59,130,246,0.08)',
+  border: `1px solid ${scanning ? 'rgba(16,185,129,0.25)' : 'rgba(59,130,246,0.2)'}`,
   borderRadius: 20,
   backdropFilter: 'blur(8px)',
   transition: 'all 0.3s ease',
@@ -167,7 +154,6 @@ const LiveIndicator = styled(Box)(({ theme, isconnected, apistatus }) => ({
   backdropFilter: 'blur(8px)',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   cursor: 'default',
-
   '&:hover': {
     transform: 'translateY(-1px)',
     boxShadow: `0 5px 14px ${
@@ -244,11 +230,7 @@ const MobileViewSwitcher = styled(Box)(({ theme }) => ({
   },
 }));
 
-// ──────────────────────── Component ────────────────────────
-
 const Header = () => {
-  // Bug 7 fix: read isConnected from store — NOT via useOpportunities()
-  // useOpportunities() is called once in App.jsx and updates the store on connect/disconnect.
   const {
     viewMode,
     setViewMode,
@@ -263,7 +245,7 @@ const Header = () => {
   };
 
   const countdown = useCountdown(stats?.nextRunTimestamp);
-  const isScanning = !countdown; // null means the timer has expired → scan is in progress
+  const isScanning = !countdown;
 
   const lastScanLabel = stats?.lastUpdated
     ? new Date(stats.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -316,7 +298,6 @@ const Header = () => {
             gap: { xs: 1, sm: 0 },
           }}
         >
-          {/* Logo */}
           <Slide in timeout={600} direction="right">
             <LogoContainer>
               <LogoIcon />
@@ -326,7 +307,6 @@ const Header = () => {
             </LogoContainer>
           </Slide>
 
-          {/* Desktop centred view switcher */}
           <Box
             sx={{
               position: 'absolute',
@@ -351,7 +331,6 @@ const Header = () => {
             </ViewSwitcher>
           </Box>
 
-          {/* Mobile view switcher */}
           <MobileViewSwitcher>
             <ViewSwitcher disableElevation>
               <Button
@@ -369,33 +348,30 @@ const Header = () => {
             </ViewSwitcher>
           </MobileViewSwitcher>
 
-          {/* Right controls */}
           <Slide in timeout={1000} direction="left">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <StatusContainer>
-                  {/* Scan countdown badge */}
-                  <ScanBadge scanning={isScanning ? 1 : 0}>
-                    <AccessTime sx={{
-                      fontSize: 13,
-                      color: isScanning ? 'secondary.main' : 'primary.light',
-                      animation: isScanning ? `${pulseAnimation} 1.5s ease-in-out infinite` : 'none',
-                    }} />
-                    <Box>
-                      <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled', lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {isScanning ? 'Scanning' : 'Next scan'}
+                <ScanBadge scanning={isScanning ? 1 : 0}>
+                  <AccessTime sx={{
+                    fontSize: 13,
+                    color: isScanning ? 'secondary.main' : 'primary.light',
+                    animation: isScanning ? `${pulseAnimation} 1.5s ease-in-out infinite` : 'none',
+                  }} />
+                  <Box>
+                    <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled', lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {isScanning ? 'Scanning' : 'Next scan'}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, lineHeight: 1.2, color: isScanning ? 'secondary.light' : 'primary.light', fontVariantNumeric: 'tabular-nums' }}>
+                      {isScanning ? 'Now…' : countdown}
+                    </Typography>
+                    {!isScanning && stats?.nextRunTimestamp && (
+                      <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+                        at {new Date(stats.nextRunTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, lineHeight: 1.2, color: isScanning ? 'secondary.light' : 'primary.light', fontVariantNumeric: 'tabular-nums' }}>
-                        {isScanning ? 'Now…' : countdown}
-                      </Typography>
-                      {!isScanning && stats?.nextRunTimestamp && (
-                        <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
-                          at {new Date(stats.nextRunTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      )}
-                    </Box>
-                  </ScanBadge>
+                    )}
+                  </Box>
+                </ScanBadge>
 
-                {/* Connection badge */}
                 <Tooltip title={tooltipContent} placement="bottom-end" arrow>
                   <LiveIndicator isconnected={isConnected ? 1 : 0} apistatus={apiStatus}>
                     <StatusDot isconnected={isConnected ? 1 : 0} apistatus={apiStatus} />
@@ -406,7 +382,6 @@ const Header = () => {
                 </Tooltip>
               </StatusContainer>
 
-              {/* Info button */}
               <InfoButton onClick={handleScrollToFooter} title="About this application">
                 <InfoOutlined fontSize="small" />
               </InfoButton>

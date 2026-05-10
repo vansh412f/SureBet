@@ -14,13 +14,11 @@ import { useOpportunityStore } from '../../store/opportunityStore';
 import { filterOpportunities } from '../../utils/sportUtils';
 import OpportunityRow from './OpportunityRow';
 
-// ─── Animations ──────────────────────────────────────────────────────────────
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Styled ───────────────────────────────────────────────────────────────────
 const TableWrap = styled(TableContainer)(({ theme }) => ({
   height: 'calc(100vh - 156px)',
   background: theme.palette.background.default,
@@ -93,14 +91,9 @@ const IconCircle = styled(Box)(({ theme, variant }) => {
 
 const ROWS_PER_PAGE = 20;
 
-// ─── Component ────────────────────────────────────────────────────────────────
 const OpportunityTable = () => {
   const theme = useTheme();
-  // BUG-13: removed unused colSx variable
-  // BUG-14: removed unused Skeleton import
-  // BUG-15: removed unused ArrowUpward import
 
-  // ── Reactive subscriptions ─────────────────────────────────────────────
   const opportunities  = useOpportunityStore(s => s.opportunities);
   const viewMode       = useOpportunityStore(s => s.viewMode);
   const liveFilters    = useOpportunityStore(s => s.liveFilters);
@@ -117,13 +110,11 @@ const OpportunityTable = () => {
   const [sortDir, setSortDir]     = useState('desc');
   const [page, setPage]           = useState(1);
 
-  // BUG-03 fix: uses the single centralised filterOpportunities() helper
   const filtered = useMemo(
     () => filterOpportunities(opportunities, viewMode, filters),
     [opportunities, viewMode, filters]
   );
 
-  // ── Stats ─────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     if (filtered.length === 0) return { best: '—', avg: '—', count: 0 };
     const profits = filtered.map(op => op.profit_percentage || 0);
@@ -132,7 +123,6 @@ const OpportunityTable = () => {
     return { best, avg, count: filtered.length };
   }, [filtered]);
 
-  // ── Sort + paginate ───────────────────────────────────────────────────
   const paged = useMemo(() => {
     const sorted = [...filtered].sort((a, b) => {
       const av = sortField === 'last_updated' ? new Date(a[sortField]).getTime() : a[sortField];
@@ -151,7 +141,6 @@ const OpportunityTable = () => {
     setPage(1);
   };
 
-  // ── Empty/error states ────────────────────────────────────────────────
   if (connectionError) return (
     <EmptyBox>
       <EmptyCard elevation={0}>
@@ -222,7 +211,6 @@ const OpportunityTable = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* ── Stats bar ────────────────────────────────────────────────── */}
       <StatsBar>
         <StatItem label="Opportunities" value={stats.count} />
         <Divider />
@@ -235,7 +223,6 @@ const OpportunityTable = () => {
         </Typography>
       </StatsBar>
 
-      {/* ── Table ────────────────────────────────────────────────────── */}
       <TableWrap component={Paper} elevation={0}>
         <Table stickyHeader>
           <TableHead>
@@ -271,7 +258,6 @@ const OpportunityTable = () => {
         </Table>
       </TableWrap>
 
-      {/* ── Pagination ───────────────────────────────────────────────── */}
       {totalPages > 1 && (
         <Box display="flex" justifyContent="center" alignItems="center" py={1.5}
           sx={{ borderTop: `1px solid ${theme.palette.divider}`, background: theme.palette.background.paper }}>

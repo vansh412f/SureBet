@@ -9,8 +9,8 @@ export const theme = createTheme({
     error:      { main: '#EF4444', dark: '#DC2626', light: '#FCA5A5' },
     success:    { main: '#10B981', dark: '#059669', light: '#34D399' },
     background: {
-      default: '#07070F',   // near-black with slight blue cast
-      paper:   '#0D0D1A',   // card surfaces
+      default: '#07070F',
+      paper:   '#0D0D1A',
     },
     text: {
       primary:   '#F1F5F9',

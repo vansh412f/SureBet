@@ -12,8 +12,6 @@ import { styled } from '@mui/material/styles';
 import { useOpportunityStore } from '../../store/opportunityStore';
 import { getSportCat, filterOpportunities } from '../../utils/sportUtils';
 
-// ─── Styled Components ───────────────────────────────────────────────────────
-
 const SidebarWrap = styled(Box)(({ theme, isopen }) => ({
   width: isopen ? 'clamp(260px, 18vw, 300px)' : '48px',
   height: 'calc(100vh - 64px)',
@@ -117,8 +115,6 @@ const SearchInput = styled(TextField)(({ theme }) => ({
   },
 }));
 
-// ─── Inner content (shared between desktop sidebar and mobile drawer) ────────
-
 const SidebarContent = ({
   onToggle, isMobile,
   stats, filters, viewMode, viewOpps,
@@ -137,7 +133,6 @@ const SidebarContent = ({
   return (
     <>
       <StickyHeader>
-        {/* Title row */}
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
           <Box display="flex" alignItems="center" gap={0.8}>
             <TuneRounded sx={{ fontSize: 16, color: 'primary.main' }} />
@@ -155,7 +150,6 @@ const SidebarContent = ({
           }
         </Box>
 
-        {/* Stats row */}
         <Box display="flex" gap={1}>
           <StatChip>
             <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: 'primary.light', lineHeight: 1 }}>
@@ -183,7 +177,6 @@ const SidebarContent = ({
       </StickyHeader>
 
       <ScrollArea>
-        {/* ── Leagues ── */}
         <Section>
           <SectionHeader onClick={() => toggleSection('leagues')}>
             <SectionTitle className="sec-title">
@@ -233,7 +226,6 @@ const SidebarContent = ({
 
         <Divider sx={{ opacity: 0.4, mx: 1.5 }} />
 
-        {/* ── Bookmakers ── */}
         <Section>
           <SectionHeader onClick={() => toggleSection('bookmakers')}>
             <SectionTitle className="sec-title">
@@ -283,7 +275,6 @@ const SidebarContent = ({
 
         <Divider sx={{ opacity: 0.4, mx: 1.5 }} />
 
-        {/* ── Min Profit ── */}
         <Section>
           <SectionHeader onClick={() => toggleSection('profit')}>
             <SectionTitle className="sec-title">Min Profit %</SectionTitle>
@@ -316,13 +307,10 @@ const SidebarContent = ({
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 const FilterSidebar = ({ isOpen, onToggle }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // ── Subscribe to raw store state (REACTIVE) ──────────────────────────────
   const opportunities  = useOpportunityStore(s => s.opportunities);
   const viewMode       = useOpportunityStore(s => s.viewMode);
   const liveFilters    = useOpportunityStore(s => s.liveFilters);
@@ -333,13 +321,11 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
 
   const filters = viewMode === 'live' ? liveFilters : pastFilters;
 
-  // ── Derive data reactively with useMemo ──────────────────────────────────
   const viewOpps = useMemo(
     () => opportunities.filter(op => op.status === viewMode),
     [opportunities, viewMode]
   );
 
-  // BUG-03 fix: use getSportCat() consistently (was mixing sport_category vs getSportCat)
   const availableLeagues = useMemo(() => {
     const pool = filters.sport !== 'All'
       ? viewOpps.filter(op => getSportCat(op) === filters.sport)
@@ -353,13 +339,11 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     return [...bk].sort();
   }, [viewOpps]);
 
-  // BUG-03 fix: uses centralised filterOpportunities() for consistent count
   const filteredCount = useMemo(
     () => filterOpportunities(opportunities, viewMode, filters).length,
     [opportunities, viewMode, filters]
   );
 
-  // ── Local UI state ───────────────────────────────────────────────────────
   const [expandedSections, setExpandedSections] = useState({ leagues: true, bookmakers: true, profit: true });
   const [searchTerms, setSearchTerms] = useState({ leagues: '', bookmakers: '' });
 
@@ -374,7 +358,6 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     [availableBookmakers, searchTerms.bookmakers]
   );
 
-  // BUG-04 fix: pass explicit viewMode to updateFilter so there's no stale-closure risk
   const handleLeagueChange = (league, checked) =>
     updateFilter('leagues', checked ? [...filters.leagues, league] : filters.leagues.filter(l => l !== league), viewMode);
 
@@ -386,7 +369,6 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     updateFilter(type, current.length === items.length ? [] : items, viewMode);
   };
 
-  // BUG-04 fix: pass explicit viewMode
   const handleProfitChange = (_, val) => updateFilter('minProfit', val, viewMode);
 
   const handleClearAll = () => {
@@ -404,7 +386,6 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     handleSelectAll, handleProfitChange, handleClearAll,
   };
 
-  // ── Mobile: FAB + Drawer ─────────────────────────────────────────────────
   if (isMobile) {
     return (
       <>
@@ -427,7 +408,6 @@ const FilterSidebar = ({ isOpen, onToggle }) => {
     );
   }
 
-  // ── Desktop: collapsible sidebar ─────────────────────────────────────────
   return (
     <SidebarWrap isopen={isOpen ? 1 : 0}>
       {isOpen ? (

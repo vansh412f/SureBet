@@ -77,8 +77,6 @@ const SportFilterBar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-
-  // ── Reactive subscriptions ───────────────────────────────────────────────
   const opportunities = useOpportunityStore(s => s.opportunities);
   const viewMode      = useOpportunityStore(s => s.viewMode);
   const liveFilters   = useOpportunityStore(s => s.liveFilters);
@@ -101,7 +99,6 @@ const SportFilterBar = () => {
   const getCount = sport =>
     sport === 'All' ? viewOpps.length : viewOpps.filter(op => getSportCat(op) === sport).length;
 
-  // BUG-04 fix: pass explicit viewMode to updateFilter
   const handleSportChange = sport => {
     updateFilter('sport', sport, viewMode);
     if (sport !== filters.sport) updateFilter('leagues', [], viewMode);
@@ -109,7 +106,6 @@ const SportFilterBar = () => {
 
   return (
     <Bar>
-      {/* Stats chip */}
       <Box display="flex" alignItems="center" gap={0.8} flexShrink={0}
         sx={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 2, px: 1.2, py: 0.5 }}>
         <Assessment sx={{ fontSize: '0.9rem', color: 'primary.light' }} />
@@ -125,13 +121,11 @@ const SportFilterBar = () => {
 
       <Sep />
 
-      {/* All sports button */}
       <SportBtn selected={filters.sport === 'All' ? 1 : 0} onClick={() => handleSportChange('All')}>
         All Sports
         <CountBadge selected={filters.sport === 'All' ? 1 : 0}>{getCount('All')}</CountBadge>
       </SportBtn>
 
-      {/* Per-sport buttons */}
       {availableSports.map(sport => (
         <SportBtn
           key={sport}

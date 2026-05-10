@@ -31,7 +31,6 @@ const TableContainer = styled(Box)(() => ({
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Single call site for the WebSocket hook (Bug 7 fix — prevents double listeners)
   useOpportunities();
 
   const toggleSidebar = () => {
@@ -40,7 +39,6 @@ function App() {
 
   return (
     <AppContainer>
-      {/* CssBaseline only here — removed duplicate from main.jsx (Bug 12 fix) */}
       <CssBaseline />
       <Header />
       <MainContent>

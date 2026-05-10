@@ -14,8 +14,6 @@ connectDB();
 
 const app = express();
 
-// BUG-16 fix: support comma-separated list of allowed origins in FRONTEND_URL.
-// e.g. FRONTEND_URL="https://myapp.vercel.app,https://www.myapp.vercel.app"
 const rawOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
 const allowedOrigins = rawOrigin.split(',').map((o) => o.trim()).filter(Boolean);
 const corsOrigin = allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins;
@@ -31,7 +29,6 @@ const io = new Server(httpServer, {
   },
 });
 
-// Schedule (shared so both the cron job and the initial run use the same expression)
 const CRON_SCHEDULE = '0 * * * *';
 
 io.on('connection', async (socket) => {
@@ -40,7 +37,6 @@ io.on('connection', async (socket) => {
   try {
     const allOpportunities = await Opportunity.find({});
 
-    // Compute the real next-run timestamp so the client countdown starts immediately
     let nextRunTimestamp = null;
     try {
       nextRunTimestamp = parseExpression(CRON_SCHEDULE).next().toDate();
@@ -71,7 +67,6 @@ httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Scheduled arbitrage check — runs every hour on the hour
 cron.schedule(CRON_SCHEDULE, () => {
   console.log('Running scheduled arbitrage check...');
   runArbitrageCheck(io, CRON_SCHEDULE);
@@ -79,5 +74,4 @@ cron.schedule(CRON_SCHEDULE, () => {
 
 console.log('Scheduled arbitrage check to run every hour.');
 
-// Initial run on server start
 runArbitrageCheck(io, CRON_SCHEDULE);

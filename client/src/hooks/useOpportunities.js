@@ -3,8 +3,6 @@ import { useOpportunityStore } from '../store/opportunityStore';
 import socket from '../api/socket';
 
 export const useOpportunities = () => {
-  // BUG-07 fix: removed local useState for isConnected — it was dead code because
-  // App.jsx discards the hook's return value. All connection state lives in the Zustand store.
   const { setOpportunities, setApiStatus, updateStatus, setIsConnected } = useOpportunityStore();
 
   useEffect(() => {
@@ -36,7 +34,6 @@ export const useOpportunities = () => {
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
 
-    // Sync initial connection state with socket
     setIsConnected(socket.connected);
 
     return () => {

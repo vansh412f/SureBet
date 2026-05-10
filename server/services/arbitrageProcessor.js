@@ -9,24 +9,17 @@ const TARGET_BOOKMAKERS = [
   '888sport', 'betway', 'coral', 'ladbrokes', 'boylesports',
 ];
 
-// Permanent cap: profit_percentage above this value is a data error, never stored or broadcast.
 const MAX_ARBIT_PROFIT = 60;
+const ALL_KEYS_EXHAUSTED_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
-// Cooldown period after all API keys are exhausted (ms). Prevents hammering on the next cron tick.
-const ALL_KEYS_EXHAUSTED_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
-
-// Promise-based delay
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// Extracts a clean sport category from the sport_title string.
-// e.g. "Soccer - EPL" -> "Soccer", "Basketball" -> "Basketball"
 function extractSportCategory(sportTitle) {
   if (!sportTitle) return 'Other';
   const parts = sportTitle.split(' - ');
   return parts[0].trim();
 }
 
-// Normalises a team name for fuzzy comparison.
 function normaliseTeamName(name) {
   return (name || '')
     .toLowerCase()
@@ -35,7 +28,6 @@ function normaliseTeamName(name) {
     .trim();
 }
 
-// Returns true if two team names are "close enough" to be the same club.
 function teamsMatch(a, b) {
   if (!a || !b) return false;
   const na = normaliseTeamName(a);
@@ -43,7 +35,6 @@ function teamsMatch(a, b) {
   return na === nb || na.includes(nb) || nb.includes(na);
 }
 
-// ── SystemState helpers ──────────────────────────────────────────────────────
 async function readCurrentKeyIndex() {
   const doc = await SystemState.findOne({ key: 'api_state' });
   return doc?.value ?? 0;
@@ -70,23 +61,18 @@ async function writeExhaustedAt(ts) {
   );
 }
 
-// Main arbitrage scanning function.
-// @param {SocketIO.Server} io - Socket.IO server instance for live status updates
-// @param {string} cronSchedule - The cron string used to schedule this job
 const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
   console.log('Starting arbitrage check...');
 
-  // ── All-keys-exhausted cooldown check ───────────────────────────────────
   const exhaustedAt = await readExhaustedAt();
   if (exhaustedAt > 0) {
     const msSinceExhausted = Date.now() - exhaustedAt;
     if (msSinceExhausted < ALL_KEYS_EXHAUSTED_COOLDOWN_MS) {
       const hoursLeft = ((ALL_KEYS_EXHAUSTED_COOLDOWN_MS - msSinceExhausted) / 3600000).toFixed(1);
-      console.warn(`⏳ All API keys were recently exhausted. Cooldown: ${hoursLeft}h remaining.`);
+      console.warn(`All API keys exhausted. Cooldown: ${hoursLeft}h remaining.`);
       io?.emit('status_update', { message: `API key cooldown active. Next attempt in ${hoursLeft}h.` });
       return;
     }
-    // Cooldown expired — clear the flag and proceed
     await writeExhaustedAt(0);
   }
 
@@ -94,7 +80,6 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
   let matchesProcessedThisRun = 0;
   const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  // Load API keys
   const apiKeys = process.env.ODDS_API_KEY?.split(',').map((s) => s.trim()).filter(Boolean) || [];
   if (apiKeys.length === 0) {
     console.error('No API keys found.');
@@ -109,9 +94,8 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
   }
 
   let apiKey = apiKeys[currentKeyIndex];
-  console.log(`🔑 Using API Key ${currentKeyIndex + 1}/${apiKeys.length}`);
+  console.log(`Using API Key ${currentKeyIndex + 1}/${apiKeys.length}`);
 
-  // ── Fetch active sports ──────────────────────────────────────────────────
   let activeSports = [];
   try {
     io?.emit('status_update', { message: 'Discovering active sports...' });
@@ -130,13 +114,10 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
 
   let totalHistoricalSaved = 0;
   const live_opportunities = [];
-  let scanCompletedFully = false;
 
-  // ── Main scanning loop ───────────────────────────────────────────────────
   for (const sport of activeSports) {
     if (matchesProcessedThisRun >= MATCH_SCAN_LIMIT) {
-      console.log(`✅ Match scan limit of ${MATCH_SCAN_LIMIT} reached. Ending session.`);
-      scanCompletedFully = true;
+      console.log(`Match scan limit of ${MATCH_SCAN_LIMIT} reached. Ending session.`);
       break;
     }
 
@@ -152,32 +133,30 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
         matches = oddsRes.data;
         fetchSuccessful = true;
       } catch (e) {
-        // ── API Key Rotation ─────────────────────────────────────────────
         if (e.response && (e.response.status === 401 || e.response.status === 422 || e.response.status === 429)) {
           console.error(`API Key ${currentKeyIndex + 1} exhausted/invalid for: ${sport.title}`);
           io?.emit('status_update', { message: `Key ${currentKeyIndex + 1} exhausted, trying next key...` });
 
           currentKeyIndex++;
           if (currentKeyIndex >= apiKeys.length) {
-            console.error('❌ All API keys exhausted for this session.');
+            console.error('All API keys exhausted for this session.');
             io?.emit('api_error', { message: 'All available API keys have been exhausted.' });
-            await writeCurrentKeyIndex(0);            // reset index for next run
-            await writeExhaustedAt(Date.now());       // record exhaustion time for cooldown
+            await writeCurrentKeyIndex(0);
+            await writeExhaustedAt(Date.now());
             return;
           }
 
           apiKey = apiKeys[currentKeyIndex];
           await writeCurrentKeyIndex(currentKeyIndex);
-          console.log(`➡️ Switched to API Key ${currentKeyIndex + 1}/${apiKeys.length}. Retrying ${sport.title}...`);
+          console.log(`Switched to API Key ${currentKeyIndex + 1}/${apiKeys.length}. Retrying ${sport.title}...`);
           await delay(1000);
         } else {
           console.error(`Unexpected error fetching odds for ${sport.key}:`, e.message);
-          break; // non-key error — skip this sport
+          break;
         }
       }
     }
 
-    // ── Filter matches ───────────────────────────────────────────────────
     const timeFiltered = matches.filter(
       (m) => new Date(m.commence_time) < oneWeekFromNow
     );
@@ -188,11 +167,9 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
       }))
       .filter((m) => m.bookmakers.length >= 2);
 
-    // ── Save matches & calculate arbitrage ───────────────────────────────
     for (const match of fullyFiltered) {
       const sportCategory = extractSportCategory(match.sport_title);
 
-      // Persist match history
       const matchData = {
         id: match.id,
         sport_key: match.sport_key,
@@ -214,7 +191,6 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
       totalHistoricalSaved++;
       matchesProcessedThisRun++;
 
-      // ── Arbitrage calculation ────────────────────────────────────────
       const outcomes = new Map();
       match.bookmakers.forEach((bk) => {
         const h2h = bk.markets.find((mkt) => mkt.key === 'h2h');
@@ -291,22 +267,15 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
     await delay(500);
   }
 
-  // Scan reached this point = all sports processed (early-return handles key-exhaustion)
-
   console.log(`Saved/updated ${totalHistoricalSaved} matches.`);
   console.log(`Found ${live_opportunities.length} live arbitrage opportunities.`);
 
-  // Only purge old 'live' opportunities when the scan ran to completion.
-  if (scanCompletedFully) {
-    const liveMatchIds = live_opportunities.map((o) => o.match_id);
-    await Opportunity.updateMany(
-      { status: 'live', match_id: { $nin: liveMatchIds } },
-      { $set: { status: 'past' } }
-    );
-    console.log(`Marked old live opportunities as past (full scan).`);
-  }
+  const liveMatchIds = live_opportunities.map((o) => o.match_id);
+  await Opportunity.updateMany(
+    { status: 'live', match_id: { $nin: liveMatchIds } },
+    { $set: { status: 'past' } }
+  );
 
-  // Upsert live opportunities
   for (const opp of live_opportunities) {
     await Opportunity.findOneAndUpdate(
       { match_id: opp.match_id },
@@ -316,7 +285,6 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
   }
   console.log(`Upserted ${live_opportunities.length} live opportunities.`);
 
-  // Calculate next run timestamp
   let nextRunTimestamp = null;
   try {
     nextRunTimestamp = parseExpression(cronSchedule).next().toDate();
@@ -324,7 +292,6 @@ const runArbitrageCheck = async (io, cronSchedule = '0 * * * *') => {
     console.error('Could not parse cron expression:', err.message);
   }
 
-  // Broadcast results
   if (io) {
     const allOpportunities = await Opportunity.find({});
     io.emit('new_opportunities', {
